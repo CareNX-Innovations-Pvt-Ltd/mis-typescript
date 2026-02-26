@@ -1,0 +1,25 @@
+# Node dependencies
+node_modules/
+
+# Compiled output
+dist/
+
+# Environment variables
+.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Firebase service account
+serviceAccountKey.json
+
+#Bigquery
+bigquery-service-account.json

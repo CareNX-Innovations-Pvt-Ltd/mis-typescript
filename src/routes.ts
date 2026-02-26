@@ -1,0 +1,33 @@
+import { Router } from "express";
+import organizationMisRoutes from "./modules/mis/organizations/organizations.routes.js";
+import deviceMisRoutes from "./modules/mis/devices/devices.routes.js";
+import organizationRegistrationRoutes from "./modules/registration/organizations/organizations.routes.js";
+import deviceRegistrationRoutes from "./modules/registration/devices/devices.routes.js";
+import distributorRegistrationRoutes from "./modules/registration/distributor/distributors.routes.js";
+import dashboardRoutes from "./modules/dashboard/dashboard.routes.js";
+import newTicketRoutes from "./modules/serviceAndSupport/supportTicket/newTicket/newTicket.routes.js";
+import updateTicketRoutes from "./modules/serviceAndSupport/supportTicket/updateTicket/updateTicket.routes.js";
+import serviceDashboardRoutes from "./modules/serviceAndSupport/supportTicket/serviceDashboard/service.routes.js";
+import newFeedbackRoutes from "./modules/serviceAndSupport/customerFeedback/newFeedback/newFeedback.routes.js";
+import updateFeedbackRoutes from "./modules/serviceAndSupport/customerFeedback/updateFeedback/updateFeedback.routes.js";
+import feedbackDashboardRoutes from "./modules/serviceAndSupport/customerFeedback/feedbackDashboard/feedback.routes.js";
+import analyticsDashboardRoutes from "./modules/analytics/analytics.routes.js";
+import OrganizationDetailsRoutes from "./modules/mis/organizations/organizationDetails/organizationDetails.rotue.js";
+const router = Router();
+
+router.use("/mis/organizations", organizationMisRoutes);
+router.use("/mis/devices", deviceMisRoutes);
+router.use("/registration/organizations", organizationRegistrationRoutes);
+router.use("/registration/devices", deviceRegistrationRoutes);
+router.use("/registration/distributors", distributorRegistrationRoutes);
+router.use("/dashboard", dashboardRoutes);
+router.use("/support", newTicketRoutes);
+router.use("/support", updateTicketRoutes);
+router.use("/support", serviceDashboardRoutes);
+router.use("/feedback", newFeedbackRoutes);
+router.use("/feedback", updateFeedbackRoutes);
+router.use("/feedback", feedbackDashboardRoutes);
+router.use("/analytics", analyticsDashboardRoutes);
+router.use("/organizationDetails", OrganizationDetailsRoutes);
+
+export default router;
