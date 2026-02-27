@@ -535,8 +535,7 @@ export class DashboardService {
         ? user.allowedOrganizations.map((id: string) => id.trim())
         : [];
 
-    const cacheKey = `dashboard:${user?.type}:${JSON.stringify(query)}`;
-    const cached = cache.get(cacheKey);
+const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')}:${JSON.stringify(query)}`;    const cached = cache.get(cacheKey);
     if (cached) return cached;
 
     /* ---------- TREND EXPRESSION ---------- */
