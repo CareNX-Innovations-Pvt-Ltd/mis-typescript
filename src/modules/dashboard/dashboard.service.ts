@@ -713,8 +713,14 @@ export class DashboardService {
 
     const [rows] = await bigquery.query(queryOptions);
 
-    cache.set(cacheKey, rows[0], 1800);
+const result = rows[0];
 
-    return rows[0];
+if (isGroupUser) {
+  result.counts.organizations = allowedOrgIds.length;
+}
+
+cache.set(cacheKey, result, 1800);
+
+return result;
   }
 }
