@@ -8,9 +8,9 @@ import { BigQuery } from '@google-cloud/bigquery';
 
 let bigquery: BigQuery;
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+if (process.env.BIGQUERY_SERVICE_ACCOUNT) {
   const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT
+    process.env.BIGQUERY_SERVICE_ACCOUNT
   );
 
   serviceAccount.private_key =
