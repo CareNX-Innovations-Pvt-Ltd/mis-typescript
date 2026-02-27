@@ -16,5 +16,5 @@ const serviceAccountPath = path.join(
 export const db = new Firestore({
   projectId: "mongo-compatibility", // Your Firebase Project ID
   keyFilename: serviceAccountPath,  // Path to service account
-  databaseId: "fetosense-native",   // 🔥 Important: Named DB
+  databaseId: "fetosense-native",   // Important: Named DB
 });

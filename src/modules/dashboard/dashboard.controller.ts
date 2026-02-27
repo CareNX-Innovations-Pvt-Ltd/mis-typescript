@@ -8,7 +8,8 @@ export class DashboardController {
     try {
 
       const data = await DashboardService.getDashboard(
-        req.query as any
+        req.query as any,
+        req.user
       );
 
       return res.status(200).json({

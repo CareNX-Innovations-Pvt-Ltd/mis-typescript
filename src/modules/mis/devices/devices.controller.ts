@@ -2,32 +2,47 @@ import type { Request, Response } from "express";
 import { DeviceService } from "./devices.service.js";
 
 export class DeviceController {
-  // Get All
   static async getAll(req: Request, res: Response) {
     try {
-      // Safe query handling
-      const searchParam = req.query.search;
+      const search =
+        typeof req.query.search === "string"
+          ? req.query.search
+          : undefined;
 
-      let search: string | undefined;
+      const data = await DeviceService.getAll(search, req.user);
 
-      if (typeof searchParam === "string") {
-        search = searchParam;
-      }
-
-      const data = await DeviceService.getAll(search);
-    //   console.log(data);
-      
-
-      res.json({
+      return res.status(200).json({
         success: true,
-        data,
+        payload: data,
+        status_code: 200,
       });
     } catch (err: any) {
-      res.status(500).json({
+      const message = err.message || "Internal Server Error";
+
+      if (message === "Unauthorized") {
+        return res.status(401).json({
+          success: false,
+          payload: null,
+          status_code: 401,
+          message,
+        });
+      }
+
+      if (message === "Forbidden") {
+        return res.status(403).json({
+          success: false,
+          payload: null,
+          status_code: 403,
+          message,
+        });
+      }
+
+      return res.status(500).json({
         success: false,
-        message: err.message,
+        payload: null,
+        status_code: 500,
+        message,
       });
     }
   }
- 
 }

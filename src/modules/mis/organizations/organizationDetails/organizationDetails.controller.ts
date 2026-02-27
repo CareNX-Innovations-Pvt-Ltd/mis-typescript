@@ -12,7 +12,7 @@ export class OrganizationDetailsController {
   static async getOrganizationDetails(req: Request, res: Response) {
     try {
 const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getOrganizationDetails(orgId);
+      const data = await OrganizationDetailsService.getOrganizationDetails(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -22,7 +22,7 @@ const orgId = OrganizationDetailsController.getOrgId(req);
   static async getAnalytics(req: Request, res: Response) {
     try {
       const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getAnalytics(orgId);
+      const data = await OrganizationDetailsService.getAnalytics(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -32,7 +32,7 @@ const orgId = OrganizationDetailsController.getOrgId(req);
   static async getDevices(req: Request, res: Response) {
     try {
       const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getDevices(orgId);
+      const data = await OrganizationDetailsService.getDevices(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -42,7 +42,7 @@ const orgId = OrganizationDetailsController.getOrgId(req);
   static async getDoctors(req: Request, res: Response) {
     try {
       const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getDoctors(orgId);
+      const data = await OrganizationDetailsService.getDoctors(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -52,7 +52,7 @@ const orgId = OrganizationDetailsController.getOrgId(req);
   static async getMothers(req: Request, res: Response) {
     try {
       const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getMothers(orgId);
+      const data = await OrganizationDetailsService.getMothers(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });
@@ -62,7 +62,7 @@ const orgId = OrganizationDetailsController.getOrgId(req);
   static async getTests(req: Request, res: Response) {
     try {
       const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getTests(orgId);
+      const data = await OrganizationDetailsService.getTests(orgId, req.user);
       res.json({ success: true, payload: data });
     } catch (err: any) {
       res.status(500).json({ success: false, message: err.message });

@@ -1,13 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
+import type { AppJwtPayload } from "../types/auth.types.js";
 
 export const authenticate = (
   req: Request,
@@ -23,7 +16,11 @@ export const authenticate = (
   const token = header.split(" ")[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET!
+    ) as AppJwtPayload;
+
     req.user = decoded;
     next();
   } catch {

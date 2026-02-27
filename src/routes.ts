@@ -13,21 +13,27 @@ import updateFeedbackRoutes from "./modules/serviceAndSupport/customerFeedback/u
 import feedbackDashboardRoutes from "./modules/serviceAndSupport/customerFeedback/feedbackDashboard/feedback.routes.js";
 import analyticsDashboardRoutes from "./modules/analytics/analytics.routes.js";
 import OrganizationDetailsRoutes from "./modules/mis/organizations/organizationDetails/organizationDetails.rotue.js";
+import { authenticate } from "./middleware/auth.middleware.js";
+import loginRoutes from "./modules/login/login.routes.js";
+import { authorizeRoles } from "./middleware/role.middleware.js";
 const router = Router();
 
-router.use("/mis/organizations", organizationMisRoutes);
-router.use("/mis/devices", deviceMisRoutes);
-router.use("/registration/organizations", organizationRegistrationRoutes);
-router.use("/registration/devices", deviceRegistrationRoutes);
-router.use("/registration/distributors", distributorRegistrationRoutes);
-router.use("/dashboard", dashboardRoutes);
-router.use("/support", newTicketRoutes);
-router.use("/support", updateTicketRoutes);
-router.use("/support", serviceDashboardRoutes);
-router.use("/feedback", newFeedbackRoutes);
-router.use("/feedback", updateFeedbackRoutes);
-router.use("/feedback", feedbackDashboardRoutes);
-router.use("/analytics", analyticsDashboardRoutes);
-router.use("/organizationDetails", OrganizationDetailsRoutes);
+router.use("/auth", loginRoutes);
+router.use(authenticate);
+
+router.use("/mis/organizations", authorizeRoles("admin", "groupUser"), organizationMisRoutes);
+router.use("/mis/devices", authorizeRoles("admin", "groupUser"), deviceMisRoutes);
+router.use("/registration/organizations", authorizeRoles("admin"), organizationRegistrationRoutes);
+router.use("/registration/devices", authorizeRoles("admin"), deviceRegistrationRoutes);
+router.use("/registration/distributors", authorizeRoles("admin"), distributorRegistrationRoutes);
+router.use("/dashboard", authorizeRoles("admin", "groupUser"), dashboardRoutes);
+router.use("/support", authorizeRoles("admin"), newTicketRoutes);
+router.use("/support", authorizeRoles("admin"), updateTicketRoutes);
+router.use("/support", authorizeRoles("admin"), serviceDashboardRoutes);
+router.use("/feedback", authorizeRoles("admin"), newFeedbackRoutes);
+router.use("/feedback", authorizeRoles("admin"), updateFeedbackRoutes);
+router.use("/feedback", authorizeRoles("admin"), feedbackDashboardRoutes);
+router.use("/analytics", authorizeRoles("admin", "groupUser"), analyticsDashboardRoutes);
+router.use("/organizationDetails", authorizeRoles("admin", "groupUser"), OrganizationDetailsRoutes);
 
 export default router;

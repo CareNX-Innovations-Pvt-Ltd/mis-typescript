@@ -1,25 +1,33 @@
 import axios from "axios";
 import jwt from "jsonwebtoken";
-import { auth, db } from "../../config/firebase.js";
+import { auth } from "../../config/firebase.js";
+import { db } from "../../database/firestore.js";
 
 export const loginService = async (email: string, password: string) => {
-  // 1 Verify email/password with Firebase REST API
-  const response = await axios.post(
-    `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
-    {
-      email,
-      password,
-      returnSecureToken: true,
-    }
-  );
+  console.log("API KEY:", process.env.FIREBASE_API_KEY);
+
+  let response;
+
+  try {
+    response = await axios.post(
+      `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${process.env.FIREBASE_API_KEY}`,
+      {
+        email,
+        password,
+        returnSecureToken: true,
+      }
+    );
+  } catch (error: any) {
+    console.log("Firebase Error:", error.response?.data);
+    throw new Error(
+      error.response?.data?.error?.message || "Firebase login failed"
+    );
+  }
 
   const idToken = response.data.idToken;
-
-  // 2 Verify token
   const decoded = await auth.verifyIdToken(idToken);
   const uid = decoded.uid;
 
-  // 3️ Fetch user from Firestore
   const userDoc = await db.collection("users").doc(uid).get();
 
   if (!userDoc.exists) {
@@ -28,12 +36,11 @@ export const loginService = async (email: string, password: string) => {
 
   const userData = userDoc.data();
 
-  // 4️ Generate your own JWT
   const appToken = jwt.sign(
     {
       uid,
       type: userData?.type,
-      allowedOrganizations: userData?.allowedOrganizations,
+      allowedOrganizations: userData?.allowedOrganizations || []
     },
     process.env.JWT_SECRET!,
     { expiresIn: "8h" }

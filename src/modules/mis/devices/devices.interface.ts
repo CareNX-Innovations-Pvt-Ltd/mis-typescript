@@ -1,25 +1,15 @@
 export interface IDeviceMis {
-  id?: string;
+  deviceId: string;
+  deviceCode: string;
+  deviceName: string;
+  productType: string;
 
-  name: string;
-  type: string;
+  organizationId: string;
 
-  city: string;
-  state: string;
+  status: "Active" | "Inactive";
 
-  contactPerson: string;
-  contactNumber: string;
+  warrantyEnd: Date | null;
+  amcStatus: "Active" | "Inactive";
 
-  devices: number;
-  totalTests: number;
-  utilization: number;
-
-  amcStatus: "Active" | "Due" | "Expired";
-
-  salesChannel: "Direct" | "Distributor";
-
-  registeredAt: string;
-
-  createdAt?: string;
-  updatedAt?: string;
+  createdOn: Date | null;
 }

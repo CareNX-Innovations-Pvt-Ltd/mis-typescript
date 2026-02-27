@@ -15,7 +15,7 @@ export class OrganizationController {
         search = searchParam;
       }
 
-      const data = await OrganizationService.getAll(search);
+      const data = await OrganizationService.getAll(search, req.user);
     //   console.log(data);
       
 

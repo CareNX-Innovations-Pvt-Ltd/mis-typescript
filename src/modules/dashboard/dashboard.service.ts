@@ -312,6 +312,195 @@
 //   }
 
 // }
+// import { bigquery } from '../../config/bigQuery.js';
+// import { cache } from '../../config/cache.js';
+// import type { DashboardQuery } from './dashboard.interface.js';
+
+// const PROJECT = process.env.BQ_PROJECT_ID!;
+// const DATASET = process.env.BQ_DATASET!;
+// const LOCATION = process.env.BQ_LOCATION || 'asia-south1';
+
+// const TABLES = {
+//   devices: 'devices_raw_latest',
+//   mothers: 'mothers_raw_latest',
+//   tests: 'tests_raw_latest',
+//   users: 'users_raw_latest',
+//   organizations: 'organizations_raw_latest',
+//   distributors: 'distributors_raw_latest'
+// } as const;
+
+// type TableKey = keyof typeof TABLES;
+
+// const table = (name: TableKey) =>
+//   `\`${PROJECT}.${DATASET}.${TABLES[name]}\``;
+
+// export class DashboardService {
+
+//   static async getDashboard(query: DashboardQuery) {
+
+//     const {
+//       from,
+//       to,
+//       product,
+//       mode,
+//       state,
+//       salesChannel,
+//       testType,
+//       trend = 'daily'
+//     } = query;
+
+//     const cacheKey = `dashboard:${JSON.stringify(query)}`;
+//     const cached = cache.get(cacheKey);
+//     if (cached) return cached;
+
+//     let trendFormat = 'DATE(ts)';
+//     if (trend === 'weekly') trendFormat = "FORMAT_DATE('%Y-%W', DATE(ts))";
+//     if (trend === 'monthly') trendFormat = "FORMAT_DATE('%Y-%m', DATE(ts))";
+
+//     const productFilter =
+//       product && product !== 'All'
+//         ? `AND JSON_VALUE(d.data,'$.productType')='${product}'`
+//         : '';
+
+//     const modeFilter =
+//       mode && mode !== 'All'
+//         ? `AND JSON_VALUE(d.data,'$.deviceMode')='${mode}'`
+//         : '';
+
+//     const stateFilter =
+//       state && state !== 'All'
+//         ? `AND JSON_VALUE(o.data,'$.state')='${state}'`
+//         : '';
+
+//     const testTypeFilter =
+//       testType && testType !== 'All'
+//         ? `AND JSON_VALUE(data,'$.testType')='${testType}'`
+//         : '';
+
+//     const sql = `
+//     WITH orgs AS (
+//       SELECT
+//         JSON_VALUE(data,'$.organizationId') AS organizationId,
+//         JSON_VALUE(data,'$.state') AS state,
+//         JSON_VALUE(data,'$.city') AS city
+//       FROM ${table('organizations')}
+//     ),
+
+//     devicesWithOrg AS (
+//       SELECT
+//         JSON_VALUE(d.data,'$.organizationId') AS organizationId,
+//         JSON_VALUE(d.data,'$.productType') AS productType,
+//         o.state,
+//         o.city
+//       FROM ${table('devices')} d
+//       LEFT JOIN orgs o
+//       ON JSON_VALUE(d.data,'$.organizationId') = o.organizationId
+//       WHERE 1=1 ${productFilter} ${modeFilter} ${stateFilter}
+//     ),
+
+//     stateStats AS (
+//       SELECT
+//         state,
+//         COUNT(DISTINCT organizationId) AS orgCount,
+//         COUNT(*) AS deviceCount
+//       FROM devicesWithOrg
+//       GROUP BY state
+//     ),
+
+//     cityDeviceCounts AS (
+//       SELECT
+//         city,
+//         COUNT(*) AS count
+//       FROM devicesWithOrg
+//       GROUP BY city
+//     ),
+
+//     distributors AS (
+//       SELECT
+//         JSON_VALUE(data,'$.city') AS city,
+//         JSON_VALUE(data,'$.state') AS state
+//       FROM ${table('distributors')}
+//     )
+
+//     SELECT
+
+//     STRUCT(
+//       (SELECT COUNT(*) FROM ${table('organizations')}) AS organizations,
+//       (SELECT COUNT(*) FROM ${table('mothers')}
+//         WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.createdOn')))
+//         BETWEEN '${from}' AND '${to}') AS mothers,
+//       (SELECT COUNT(*) FROM ${table('devices')}) AS devices,
+//       (SELECT COUNT(*) FROM ${table('tests')}
+//         WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.testDate')))
+//         BETWEEN '${from}' AND '${to}'
+//         ${testTypeFilter}) AS tests
+//     ) AS counts,
+
+//     STRUCT(
+//       (SELECT COUNT(*) FROM ${table('devices')}
+//        WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.warrantyEndDate')))
+//        >= CURRENT_DATE()) AS underWarranty
+//     ) AS warranty,
+
+//     STRUCT(
+//       (SELECT COUNT(*) FROM ${table('devices')}
+//        WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.amcValidity')))
+//        >= CURRENT_DATE()) AS underAMC
+//     ) AS amc,
+
+//     (SELECT ARRAY_AGG(STRUCT(productType, COUNT(*) AS count))
+//      FROM devicesWithOrg
+//      GROUP BY productType) AS distribution,
+
+//     (SELECT ARRAY_AGG(STRUCT(isActive, COUNT(*) AS count))
+//      FROM (
+//        SELECT JSON_VALUE(data,'$.isActive') AS isActive
+//        FROM ${table('users')}
+//        WHERE JSON_VALUE(data,'$.type')='device'
+//      )
+//      GROUP BY isActive) AS deviceStatus,
+
+//     STRUCT(
+//       (SELECT ARRAY_AGG(STRUCT(period,count))
+//        FROM (
+//          SELECT ${trendFormat} AS period, COUNT(*) AS count
+//          FROM ${table('mothers')}
+//          WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.createdOn')))
+//          BETWEEN '${from}' AND '${to}'
+//          GROUP BY period
+//        )) AS mothers,
+
+//       (SELECT ARRAY_AGG(STRUCT(period,count))
+//        FROM (
+//          SELECT ${trendFormat} AS period, COUNT(*) AS count
+//          FROM ${table('tests')}
+//          WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.testDate')))
+//          BETWEEN '${from}' AND '${to}'
+//          GROUP BY period
+//        )) AS tests
+//     ) AS trends,
+
+//     (SELECT ARRAY_AGG(STRUCT(state,orgCount,deviceCount))
+//      FROM stateStats) AS stateStats,
+
+//     (SELECT ARRAY_AGG(STRUCT(city,count))
+//      FROM cityDeviceCounts) AS cityDeviceCounts,
+
+//     (SELECT ARRAY_AGG(STRUCT(city,state))
+//      FROM distributors) AS distributorCities
+//     `;
+
+//     const [rows] = await bigquery.query({
+//       query: sql,
+//       location: LOCATION
+//     });
+
+//     cache.set(cacheKey, rows[0], 3600);
+
+//     return rows[0];
+//   }
+// }
+
 import { bigquery } from '../../config/bigQuery.js';
 import { cache } from '../../config/cache.js';
 import type { DashboardQuery } from './dashboard.interface.js';
@@ -324,9 +513,8 @@ const TABLES = {
   devices: 'devices_raw_latest',
   mothers: 'mothers_raw_latest',
   tests: 'tests_raw_latest',
-  users: 'users_raw_latest',
   organizations: 'organizations_raw_latest',
-  distributors: 'distributors_raw_latest'
+  users: 'users_raw_latest'
 } as const;
 
 type TableKey = keyof typeof TABLES;
@@ -336,166 +524,196 @@ const table = (name: TableKey) =>
 
 export class DashboardService {
 
-  static async getDashboard(query: DashboardQuery) {
+  static async getDashboard(query: DashboardQuery, user: any) {
 
-    const {
-      from,
-      to,
-      product,
-      mode,
-      state,
-      salesChannel,
-      testType,
-      trend = 'daily'
-    } = query;
+    const { from, to, trend = 'daily' } = query;
 
-    const cacheKey = `dashboard:${JSON.stringify(query)}`;
+    const isGroupUser = user?.type === 'groupUser';
+
+    const allowedOrgIds: string[] =
+      isGroupUser && Array.isArray(user.allowedOrganizations)
+        ? user.allowedOrganizations.map((id: string) => id.trim())
+        : [];
+
+    const cacheKey = `dashboard:${user?.type}:${JSON.stringify(query)}`;
     const cached = cache.get(cacheKey);
     if (cached) return cached;
 
-    let trendFormat = 'DATE(ts)';
-    if (trend === 'weekly') trendFormat = "FORMAT_DATE('%Y-%W', DATE(ts))";
-    if (trend === 'monthly') trendFormat = "FORMAT_DATE('%Y-%m', DATE(ts))";
+    /* ---------- TREND EXPRESSION ---------- */
 
-    const productFilter =
-      product && product !== 'All'
-        ? `AND JSON_VALUE(d.data,'$.productType')='${product}'`
-        : '';
+    let trendExpr = `
+      DATE(TIMESTAMP_SECONDS(
+        CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+      ))
+    `;
 
-    const modeFilter =
-      mode && mode !== 'All'
-        ? `AND JSON_VALUE(d.data,'$.deviceMode')='${mode}'`
-        : '';
+    if (trend === 'weekly') {
+      trendExpr = `
+        FORMAT_DATE('%Y-%W',
+          DATE(TIMESTAMP_SECONDS(
+            CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+          ))
+        )
+      `;
+    }
 
-    const stateFilter =
-      state && state !== 'All'
-        ? `AND JSON_VALUE(o.data,'$.state')='${state}'`
-        : '';
+    if (trend === 'monthly') {
+      trendExpr = `
+        FORMAT_DATE('%Y-%m',
+          DATE(TIMESTAMP_SECONDS(
+            CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+          ))
+        )
+      `;
+    }
 
-    const testTypeFilter =
-      testType && testType !== 'All'
-        ? `AND JSON_VALUE(data,'$.testType')='${testType}'`
-        : '';
+    /* ---------- DYNAMIC ORG FILTER ---------- */
+
+    const orgFilter = isGroupUser
+      ? `JSON_VALUE(data,'$.organizationId') IN UNNEST(@orgIds)`
+      : `TRUE`;
+
+    /* ---------- SQL ---------- */
 
     const sql = `
-    WITH orgs AS (
+    WITH device_base AS (
       SELECT
         JSON_VALUE(data,'$.organizationId') AS organizationId,
-        JSON_VALUE(data,'$.state') AS state,
-        JSON_VALUE(data,'$.city') AS city
-      FROM ${table('organizations')}
+        JSON_VALUE(data,'$.productType') AS productType,
+        SAFE_CAST(JSON_VALUE(data,'$.warrantyEndDate._seconds') AS INT64) AS warrantySec,
+        SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
+      FROM ${table('devices')}
+      WHERE ${orgFilter}
     ),
 
-    devicesWithOrg AS (
+    users_device AS (
       SELECT
-        JSON_VALUE(d.data,'$.organizationId') AS organizationId,
-        JSON_VALUE(d.data,'$.productType') AS productType,
-        o.state,
-        o.city
-      FROM ${table('devices')} d
-      LEFT JOIN orgs o
-      ON JSON_VALUE(d.data,'$.organizationId') = o.organizationId
-      WHERE 1=1 ${productFilter} ${modeFilter} ${stateFilter}
+        JSON_VALUE(data,'$.organizationId') AS organizationId,
+        JSON_VALUE(data,'$.isActive') AS isActive
+      FROM ${table('users')}
+      WHERE JSON_VALUE(data,'$.type') = 'device'
+      AND ${orgFilter}
     ),
 
-    stateStats AS (
+    org_last_test AS (
       SELECT
-        state,
-        COUNT(DISTINCT organizationId) AS orgCount,
-        COUNT(*) AS deviceCount
-      FROM devicesWithOrg
-      GROUP BY state
-    ),
-
-    cityDeviceCounts AS (
-      SELECT
-        city,
-        COUNT(*) AS count
-      FROM devicesWithOrg
-      GROUP BY city
-    ),
-
-    distributors AS (
-      SELECT
-        JSON_VALUE(data,'$.city') AS city,
-        JSON_VALUE(data,'$.state') AS state
-      FROM ${table('distributors')}
+        JSON_VALUE(data,'$.organizationId') AS organizationId,
+        MAX(DATE(TIMESTAMP_SECONDS(
+          CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+        ))) AS lastTestDate
+      FROM ${table('tests')}
+      GROUP BY organizationId
     )
 
     SELECT
 
     STRUCT(
-      (SELECT COUNT(*) FROM ${table('organizations')}) AS organizations,
+      (SELECT COUNT(*) FROM ${table('organizations')} WHERE ${orgFilter}) AS organizations,
+
       (SELECT COUNT(*) FROM ${table('mothers')}
-        WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.createdOn')))
-        BETWEEN '${from}' AND '${to}') AS mothers,
-      (SELECT COUNT(*) FROM ${table('devices')}) AS devices,
+       WHERE DATE(TIMESTAMP_SECONDS(
+         CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+       )) BETWEEN @from AND @to
+       AND ${orgFilter}
+      ) AS mothers,
+
+      (SELECT COUNT(*) FROM device_base) AS devices,
+
       (SELECT COUNT(*) FROM ${table('tests')}
-        WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.testDate')))
-        BETWEEN '${from}' AND '${to}'
-        ${testTypeFilter}) AS tests
+       WHERE DATE(TIMESTAMP_SECONDS(
+         CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+       )) BETWEEN @from AND @to
+       AND ${orgFilter}
+      ) AS tests
+
     ) AS counts,
 
     STRUCT(
-      (SELECT COUNT(*) FROM ${table('devices')}
-       WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.warrantyEndDate')))
-       >= CURRENT_DATE()) AS underWarranty
+      (SELECT COUNT(*) FROM device_base
+       WHERE warrantySec IS NOT NULL
+       AND DATE(TIMESTAMP_SECONDS(warrantySec)) >= CURRENT_DATE()
+      ) AS underWarranty,
+
+      (SELECT COUNT(*) FROM device_base
+       WHERE warrantySec IS NOT NULL
+       AND DATE(TIMESTAMP_SECONDS(warrantySec)) < CURRENT_DATE()
+      ) AS outOfWarranty
     ) AS warranty,
 
     STRUCT(
-      (SELECT COUNT(*) FROM ${table('devices')}
-       WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.amcValidity')))
-       >= CURRENT_DATE()) AS underAMC
+      (SELECT COUNT(*) FROM device_base
+       WHERE amcSec IS NOT NULL
+       AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE()
+      ) AS underAMC,
+
+      (SELECT COUNT(*) FROM device_base
+       WHERE amcSec IS NULL
+       OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE()
+      ) AS withoutAMC
     ) AS amc,
 
-    (SELECT ARRAY_AGG(STRUCT(productType, COUNT(*) AS count))
-     FROM devicesWithOrg
-     GROUP BY productType) AS distribution,
+    (SELECT COUNT(*) FROM org_last_test
+     WHERE lastTestDate < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
+    ) AS lowUsageOrganizations,
 
-    (SELECT ARRAY_AGG(STRUCT(isActive, COUNT(*) AS count))
+    (SELECT ARRAY_AGG(STRUCT(productType, count))
      FROM (
-       SELECT JSON_VALUE(data,'$.isActive') AS isActive
-       FROM ${table('users')}
-       WHERE JSON_VALUE(data,'$.type')='device'
+       SELECT productType, COUNT(*) AS count
+       FROM device_base
+       GROUP BY productType
      )
-     GROUP BY isActive) AS deviceStatus,
+    ) AS distribution,
+
+    (SELECT ARRAY_AGG(STRUCT(isActive, count))
+     FROM (
+       SELECT isActive, COUNT(*) AS count
+       FROM users_device
+       GROUP BY isActive
+     )
+    ) AS deviceStatus,
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
        FROM (
-         SELECT ${trendFormat} AS period, COUNT(*) AS count
+         SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('mothers')}
-         WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.createdOn')))
-         BETWEEN '${from}' AND '${to}'
+         WHERE DATE(TIMESTAMP_SECONDS(
+           CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+         )) BETWEEN @from AND @to
+         AND ${orgFilter}
          GROUP BY period
-       )) AS mothers,
+         ORDER BY period
+       )
+      ) AS mothers,
 
       (SELECT ARRAY_AGG(STRUCT(period,count))
        FROM (
-         SELECT ${trendFormat} AS period, COUNT(*) AS count
+         SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('tests')}
-         WHERE DATE(TIMESTAMP(JSON_VALUE(data,'$.testDate')))
-         BETWEEN '${from}' AND '${to}'
+         WHERE DATE(TIMESTAMP_SECONDS(
+           CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+         )) BETWEEN @from AND @to
+         AND ${orgFilter}
          GROUP BY period
-       )) AS tests
-    ) AS trends,
-
-    (SELECT ARRAY_AGG(STRUCT(state,orgCount,deviceCount))
-     FROM stateStats) AS stateStats,
-
-    (SELECT ARRAY_AGG(STRUCT(city,count))
-     FROM cityDeviceCounts) AS cityDeviceCounts,
-
-    (SELECT ARRAY_AGG(STRUCT(city,state))
-     FROM distributors) AS distributorCities
+         ORDER BY period
+       )
+      ) AS tests
+    ) AS trends
     `;
 
-    const [rows] = await bigquery.query({
+    const queryOptions: any = {
       query: sql,
-      location: LOCATION
-    });
+      location: LOCATION,
+      params: { from, to }
+    };
 
-    cache.set(cacheKey, rows[0], 3600);
+    if (isGroupUser) {
+      queryOptions.params.orgIds = allowedOrgIds;
+    }
+
+    const [rows] = await bigquery.query(queryOptions);
+
+    cache.set(cacheKey, rows[0], 1800);
 
     return rows[0];
   }

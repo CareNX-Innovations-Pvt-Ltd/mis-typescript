@@ -8,7 +8,9 @@ export class AnalyticsController {
     try {
 
       const data = await AnalyticsService.getDashboard(
-        req.query as any
+        req.query as any,
+                req.user
+
       );
 
       return res.status(200).json({
