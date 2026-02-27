@@ -10,7 +10,7 @@ app.use(
       "http://localhost:8080",
       "https://mongo-compatibility.web.app",
       "https://mis-typescript-1.onrender.com",
-      "https://web.fetosense.com/login"
+      "https://web.fetosense.com"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
