@@ -538,6 +538,14 @@ export class DashboardService {
 const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')}:${JSON.stringify(query)}`;    const cached = cache.get(cacheKey);
     if (cached) return cached;
 
+const dateFilter =
+  from && to
+    ? `
+      AND DATE(TIMESTAMP_SECONDS(
+        CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+      )) BETWEEN @from AND @to
+    `
+    : '';
     /* ---------- TREND EXPRESSION ---------- */
 
     let trendExpr = `
@@ -610,19 +618,13 @@ const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')
       (SELECT COUNT(*) FROM ${table('organizations')} WHERE ${orgFilter}) AS organizations,
 
       (SELECT COUNT(*) FROM ${table('mothers')}
-       WHERE DATE(TIMESTAMP_SECONDS(
-         CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-       )) BETWEEN @from AND @to
-       AND ${orgFilter}
+       WHERE ${orgFilter}
       ) AS mothers,
 
       (SELECT COUNT(*) FROM device_base) AS devices,
 
       (SELECT COUNT(*) FROM ${table('tests')}
-       WHERE DATE(TIMESTAMP_SECONDS(
-         CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-       )) BETWEEN @from AND @to
-       AND ${orgFilter}
+       WHERE ${orgFilter}
       ) AS tests
 
     ) AS counts,
@@ -676,10 +678,7 @@ const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')
        FROM (
          SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('mothers')}
-         WHERE DATE(TIMESTAMP_SECONDS(
-           CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-         )) BETWEEN @from AND @to
-         AND ${orgFilter}
+         WHERE  ${orgFilter}
          GROUP BY period
          ORDER BY period
        )
@@ -689,10 +688,7 @@ const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')
        FROM (
          SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('tests')}
-         WHERE DATE(TIMESTAMP_SECONDS(
-           CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-         )) BETWEEN @from AND @to
-         AND ${orgFilter}
+         WHERE ${orgFilter}
          GROUP BY period
          ORDER BY period
        )
