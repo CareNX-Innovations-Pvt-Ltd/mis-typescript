@@ -38,7 +38,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     databaseId: "fetosense-native",
   });
 
-  console.log("Using ENV Firestore config");
+  // console.log("Using ENV Firestore config");
 } else {
   // 💻 Local
   firestore = new Firestore({
@@ -46,7 +46,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
     databaseId: "fetosense-native",
   });
 
-  console.log("Using local Firestore config");
+  // console.log("Using local Firestore config");
 }
 
 export const db = firestore;

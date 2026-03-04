@@ -4,7 +4,7 @@ import { auth } from "../../config/firebase.js";
 import { db } from "../../database/firestore.js";
 
 export const loginService = async (email: string, password: string) => {
-  console.log("API KEY:", process.env.FIREBASE_API_KEY);
+  // console.log("API KEY:", process.env.FIREBASE_API_KEY);
 
   let response;
 
@@ -18,7 +18,7 @@ export const loginService = async (email: string, password: string) => {
       }
     );
   } catch (error: any) {
-    console.log("Firebase Error:", error.response?.data);
+    // console.log("Firebase Error:", error.response?.data);
     throw new Error(
       error.response?.data?.error?.message || "Firebase login failed"
     );

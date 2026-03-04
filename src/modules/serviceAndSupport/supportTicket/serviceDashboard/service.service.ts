@@ -43,11 +43,11 @@ export class ServiceSupportService {
     const cached = cache.get(cacheKey);
 
     if (cached) {
-      console.log('⚡ Service Cache Hit');
+      // console.log('⚡ Service Cache Hit');
       return cached;
     }
 
-    console.log('📡 Service Cache Miss → BigQuery');
+    // console.log('📡 Service Cache Miss → BigQuery');
 
     /* ================= BIGQUERY SQL ================= */
 

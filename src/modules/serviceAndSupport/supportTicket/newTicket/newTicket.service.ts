@@ -14,7 +14,7 @@ export class NewTicketService {
       modifiedAt: now,
     };
 
-    console.log("FIRESTORE WRITE CALLED", payload);
+    // console.log("FIRESTORE WRITE CALLED", payload);
 
 
     const docRef = await db.collection(COLLECTION).add(payload);

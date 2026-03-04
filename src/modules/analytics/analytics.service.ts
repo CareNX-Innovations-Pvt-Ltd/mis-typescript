@@ -456,8 +456,13 @@ avgTestsPerDevice AS (
   )
 ),
 
-avgTestDuration AS (
-  SELECT ROUND(AVG(lengthOfTest),2) AS value
+// avgTestDuration AS (
+//   SELECT ROUND(AVG(lengthOfTest),2) AS value
+//   FROM baseTests
+// ),
+
+totalTestDuration AS (
+  SELECT ROUND(SUM(lengthOfTest),2) AS value
   FROM baseTests
 ),
 
@@ -538,7 +543,7 @@ SELECT
 
 STRUCT(
   (SELECT value FROM avgTestsPerDevice) AS avgTestsPerDevice,
-  (SELECT value FROM avgTestDuration) AS avgTestDuration,
+  (SELECT value FROM totalTestDuration) AS totalTestDuration,
   (SELECT value FROM avgDailyTests) AS avgDailyTests,
   (SELECT value FROM needAttention) AS needAttention
 ) AS summary,

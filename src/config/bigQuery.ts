@@ -21,14 +21,14 @@ if (process.env.BIGQUERY_SERVICE_ACCOUNT) {
     credentials: serviceAccount,
   });
 
-  console.log("Using ENV BigQuery config");
+  // console.log("Using ENV BigQuery config");
 } else {
   bigquery = new BigQuery({
     projectId: process.env.BQ_PROJECT_ID,
     keyFilename: "./serviceAccountKey.json",
   });
 
-  console.log("Using local BigQuery config");
+  // console.log("Using local BigQuery config");
 }
 
 export { bigquery };

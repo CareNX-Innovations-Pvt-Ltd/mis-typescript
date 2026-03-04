@@ -13,11 +13,11 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
   serviceAccount.private_key =
     serviceAccount.private_key.replace(/\\n/g, "\n");
 
-  console.log("Using ENV service account");
+  // console.log("Using ENV service account");
 } else {
   // Local development
   serviceAccount = require("../../serviceAccountKey.json");
-  console.log("Using local serviceAccountKey.json");
+  // console.log("Using local serviceAccountKey.json");
 }
 
 admin.initializeApp({

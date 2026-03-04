@@ -34,11 +34,11 @@ export class FeedbackService {
     const cached = cache.get(cacheKey);
 
     if (cached) {
-      console.log('⚡ Feedback Cache Hit');
+      // console.log('⚡ Feedback Cache Hit');
       return cached;
     }
 
-    console.log('📡 Feedback Cache Miss → BigQuery');
+    // console.log('📡 Feedback Cache Miss → BigQuery');
 
 
     /* ================= BIGQUERY ================= */
