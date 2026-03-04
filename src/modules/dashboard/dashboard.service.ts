@@ -591,6 +591,8 @@ const dateFilter =
         SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
       FROM ${table('devices')}
       WHERE ${orgFilter}
+       ${dateFilter}
+
     ),
 
     users_device AS (
@@ -619,12 +621,16 @@ const dateFilter =
 
       (SELECT COUNT(*) FROM ${table('mothers')}
        WHERE ${orgFilter}
+        ${dateFilter}
+
       ) AS mothers,
 
       (SELECT COUNT(*) FROM device_base) AS devices,
 
       (SELECT COUNT(*) FROM ${table('tests')}
        WHERE ${orgFilter}
+        ${dateFilter}
+
       ) AS tests
 
     ) AS counts,
@@ -689,6 +695,8 @@ const dateFilter =
          SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('tests')}
          WHERE ${orgFilter}
+          ${dateFilter}
+
          GROUP BY period
          ORDER BY period
        )
