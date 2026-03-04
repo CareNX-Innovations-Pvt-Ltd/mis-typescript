@@ -456,12 +456,12 @@ avgTestsPerDevice AS (
   )
 ),
 
-avgTestDuration AS (
-  SELECT ROUND(
-    SAFE_DIVIDE(SUM(lengthOfTest), COUNT(lengthOfTest)),
-    2
-  ) AS value
+modeTestDuration AS (
+  SELECT lengthOfTest AS value
   FROM baseTests
+  GROUP BY lengthOfTest
+  ORDER BY COUNT(*) DESC
+  LIMIT 1
 ),
 
 avgDailyTests AS (
@@ -541,7 +541,7 @@ SELECT
 
 STRUCT(
   (SELECT value FROM avgTestsPerDevice) AS avgTestsPerDevice,
-(SELECT value FROM avgTestDuration) AS avgTestDuration,
+(SELECT value FROM modeTestDuration) AS modeTestDuration,
   (SELECT value FROM avgDailyTests) AS avgDailyTests,
   (SELECT value FROM needAttention) AS needAttention
 ) AS summary,
