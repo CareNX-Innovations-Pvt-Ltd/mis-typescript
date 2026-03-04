@@ -898,14 +898,18 @@ const sql = `
 
   /* ================= TEST COUNT PER DEVICE ================= */
 
-  testCounts AS (
+testCounts AS (
+  SELECT
+    deviceId,
+    COUNT(*) AS totalTests
+  FROM (
     SELECT
-      JSON_VALUE(data, '$.deviceId') AS deviceId,
-      COUNT(*) AS totalTests
+      JSON_VALUE(data, '$.deviceId') AS deviceId
     FROM ${TESTS_TABLE}
     WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-    GROUP BY deviceId
   )
+  GROUP BY deviceId
+)
 
   /* ================= FINAL ================= */
 
