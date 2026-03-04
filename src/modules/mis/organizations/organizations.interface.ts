@@ -18,8 +18,6 @@ export interface IOrganizationMis {
 
   salesChannel: "Direct" | "Distributor";
 
-  registeredAt: string;
-
   createdOn?: string;
   modifiedAt?: string;
 }
