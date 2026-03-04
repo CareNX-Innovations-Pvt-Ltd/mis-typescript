@@ -757,8 +757,10 @@ CROSS JOIN totalTests t
       email: row.email,
       saleRepresentative: row.saleRepresentative,
       channelType: row.channelType,
-      registeredAt: row.registeredAt,
-      totalDevices: Number(row.totalDevices),
+registeredAt: row.registeredAt
+  ? new Date(row.registeredAt.value || row.registeredAt).toISOString()
+  : null,
+        totalDevices: Number(row.totalDevices),
       activeDevices,
       underWarranty: Number(row.underWarranty),
       underAmc: Number(row.underAmc),
