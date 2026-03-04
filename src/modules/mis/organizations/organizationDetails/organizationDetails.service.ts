@@ -1107,14 +1107,21 @@ const sql = `
 
   return rows.map((row: any) => {
 
-    const formatDate = (date: any) =>
-      date
-        ? new Date(date).toLocaleDateString("en-US", {
-            month: "short",
-            day: "2-digit",
-            year: "numeric"
-          })
-        : null;
+   const formatDate = (date: any) => {
+  if (!date) return null;
+
+  const raw = date.value || date; // handle BigQuery wrapper
+
+  const parsed = new Date(raw);
+
+  if (isNaN(parsed.getTime())) return null;
+
+  return parsed.toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric"
+  });
+};
 
     return {
       motherId: row.motherId,
