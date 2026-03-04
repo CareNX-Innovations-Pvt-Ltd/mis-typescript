@@ -591,8 +591,6 @@ const dateFilter =
         SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
       FROM ${table('devices')}
       WHERE ${orgFilter}
-       ${dateFilter}
-
     ),
 
     users_device AS (
@@ -703,7 +701,7 @@ const dateFilter =
       ) AS tests
     ) AS trends
     `;
-    
+
     const queryOptions: any = {
   query: sql,
   location: LOCATION,
