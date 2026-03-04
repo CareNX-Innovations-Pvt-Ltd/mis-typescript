@@ -195,7 +195,7 @@ export class OrganizationService {
       contactNumber: row.contactNumber,
       amcStatus: row.amcStatus,
       salesChannel: row.salesChannel,
-      createdOn: row.createdOn,
+      createdOn: row.createdOn? row.createdOn.value || row.createdOn: null,      
       devices: row.devices || 0,
       totalTests: row.totalTests || 0,
       utilization: row.utilization || 0,
