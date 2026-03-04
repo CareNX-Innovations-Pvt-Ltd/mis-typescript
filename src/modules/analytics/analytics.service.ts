@@ -456,11 +456,6 @@ avgTestsPerDevice AS (
   )
 ),
 
-// avgTestDuration AS (
-//   SELECT ROUND(AVG(lengthOfTest),2) AS value
-//   FROM baseTests
-// ),
-
 totalTestDuration AS (
   SELECT ROUND(SUM(lengthOfTest),2) AS value
   FROM baseTests
