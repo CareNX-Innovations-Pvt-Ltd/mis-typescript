@@ -1051,52 +1051,37 @@ const sql = `
 const sql = `
   /* ================= MOTHER BASE ================= */
 
-  WITH mothers AS (
-    SELECT
-      JSON_VALUE(data, '$.id') AS motherId,
-      JSON_VALUE(data, '$.name') AS name,
-      SAFE_CAST(JSON_VALUE(data, '$.age') AS INT64) AS age,
+WITH mothers AS (
+  SELECT
+    JSON_VALUE(data, '$.documentId') AS motherId,
+    JSON_VALUE(data, '$.name') AS name,
+    SAFE_CAST(JSON_VALUE(data, '$.age') AS INT64) AS age,
 
-      TIMESTAMP_SECONDS(
-        SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
-      ) AS registrationDate,
+    SAFE_CAST(JSON_VALUE(data, '$.noOfTests') AS INT64) AS noOfTests,
 
-      TIMESTAMP_SECONDS(
-        SAFE_CAST(JSON_VALUE(data, '$.edd._seconds') AS INT64)
-      ) AS edd
+    TIMESTAMP_SECONDS(
+      SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
+    ) AS registrationDate,
 
-    FROM ${MOTHERS_TABLE}
-    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-  ),
+    TIMESTAMP_SECONDS(
+      SAFE_CAST(JSON_VALUE(data, '$.edd._seconds') AS INT64)
+    ) AS edd
 
-  /* ================= TEST STATS ================= */
-
-  testStats AS (
-    SELECT
-      JSON_VALUE(data, '$.motherId') AS motherId,
-      COUNT(*) AS totalTests,
-      ANY_VALUE(JSON_VALUE(data, '$.doctorName')) AS doctorName
-    FROM ${TESTS_TABLE}
-    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-    GROUP BY motherId
-  )
+  FROM ${MOTHERS_TABLE}
+  WHERE JSON_VALUE(data, '$.organizationId') = @orgId
+)
 
   /* ================= FINAL ================= */
 
-  SELECT
-    m.motherId,
-    m.name,
-    m.age,
-    m.registrationDate,
-    m.edd,
-    IFNULL(t.totalTests, 0) AS totalTests,
-    t.doctorName
-
-  FROM mothers m
-  LEFT JOIN testStats t
-  ON m.motherId = t.motherId
-
-  ORDER BY registrationDate DESC
+SELECT
+  motherId,
+  name,
+  age,
+  registrationDate,
+  edd,
+  IFNULL(noOfTests, 0) AS totalTests
+FROM mothers
+ORDER BY registrationDate DESC
   `;
 
   const [rows] = await bigquery.query({
@@ -1124,14 +1109,14 @@ const sql = `
 };
 
     return {
-      motherId: row.motherId,
-      name: row.name,
-      age: row.age,
-      doctor: row.doctorName || null,
-      registrationDate: formatDate(row.registrationDate),
-      expectedDelivery: formatDate(row.edd),
-      totalTests: Number(row.totalTests)
-    };
+  motherId: row.motherId,
+  name: row.name,
+  age: row.age,
+  doctor: row.doctorName || null, // remove if not needed
+  registrationDate: formatDate(row.registrationDate),
+  expectedDelivery: formatDate(row.edd),
+  totalTests: Number(row.totalTests) || 0
+};
   });
 }  
 
