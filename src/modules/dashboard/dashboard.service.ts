@@ -703,12 +703,17 @@ const dateFilter =
       ) AS tests
     ) AS trends
     `;
-
+    
     const queryOptions: any = {
-      query: sql,
-      location: LOCATION,
-      params: { from, to }
-    };
+  query: sql,
+  location: LOCATION,
+  params: {}
+};
+
+if (from && to) {
+  queryOptions.params.from = from;
+  queryOptions.params.to = to;
+}
 
     if (isGroupUser) {
       queryOptions.params.orgIds = allowedOrgIds;
