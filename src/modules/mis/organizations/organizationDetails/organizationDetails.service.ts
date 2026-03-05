@@ -898,33 +898,26 @@ const sql = `
 
   /* ================= TEST COUNT PER DEVICE ================= */
 
-testCounts AS (
+WITH testCounts AS (
   SELECT
-    deviceId,
+    JSON_VALUE(data, '$.deviceId') AS deviceId,
     COUNT(*) AS totalTests
-  FROM (
-    SELECT
-      JSON_VALUE(data, '$.deviceId') AS deviceId
-    FROM ${TESTS_TABLE}
-    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-  )
+  FROM ${TESTS_TABLE}
+  WHERE JSON_VALUE(data, '$.organizationId') = @orgId
   GROUP BY deviceId
 )
 
-  /* ================= FINAL ================= */
-
-  SELECT
-    d.deviceId,
-    d.deviceCode,
-    d.productType,
-    d.isValid,
-    d.warrantyEndDate,
-    d.amcValidity,
-    IFNULL(t.totalTests, 0) AS totalTests
-
-  FROM devices d
-  LEFT JOIN testCounts t
-  ON d.deviceId = t.deviceId
+SELECT
+  d.deviceId,
+  d.deviceCode,
+  d.productType,
+  d.isValid,
+  d.warrantyEndDate,
+  d.amcValidity,
+  IFNULL(t.totalTests, 0) AS totalTests
+FROM devices d
+LEFT JOIN testCounts t
+ON d.deviceId = t.deviceId
   `;
 
   const [rows] = await bigquery.query({
