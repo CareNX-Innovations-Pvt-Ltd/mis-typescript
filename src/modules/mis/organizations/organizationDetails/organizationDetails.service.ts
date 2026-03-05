@@ -1117,8 +1117,8 @@ ORDER BY registrationDate DESC
 
   static async getTests(orgId: string, user: any) {
     this.validateAccess(orgId, user);
-const sql = `
-  SELECT
+    const sql = `
+    SELECT
     JSON_VALUE(data, '$.id') AS testId,
     JSON_VALUE(data, '$.deviceName') AS deviceName,
     JSON_VALUE(data, '$.motherName') AS motherName,
@@ -1145,12 +1145,12 @@ const sql = `
   return rows.map((row: any) => {
 
     const formattedDate = row.createdOn
-      ? new Date(row.createdOn).toLocaleDateString("en-US", {
-          month: "short",
-          day: "2-digit",
-          year: "numeric"
-        })
-      : null;
+  ? new Date(row.createdOn.value || row.createdOn).toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric"
+    })
+  : null;
 
     return {
       testId: row.testId,
