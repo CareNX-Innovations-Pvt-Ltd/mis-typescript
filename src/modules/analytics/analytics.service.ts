@@ -396,8 +396,7 @@ WITH baseTests AS (
     JSON_VALUE(t.data, '$.organizationName') AS organizationName,
     JSON_VALUE(t.data, '$.organizationId') AS organizationId,
     JSON_VALUE(t.data, '$.motherId') AS motherId,
-    CAST(JSON_VALUE(t.data, '$.lengthOfTest') AS FLOAT64) AS lengthOfTest,
-
+    CAST(JSON_VALUE(t.data, '$.lengthOfTest') AS FLOAT64) / 60 AS lengthOfTest
     TIMESTAMP_SECONDS(
       SAFE_CAST(JSON_VALUE(t.data, '$.createdOn._seconds') AS INT64)
     ) AS createdOn
@@ -529,12 +528,13 @@ durationDist AS (
   SELECT
     CASE
       WHEN lengthOfTest < 20 THEN '<20 min'
-      WHEN lengthOfTest BETWEEN 20 AND 40 THEN '20-40 min'
-      WHEN lengthOfTest BETWEEN 40 AND 60 THEN '40-60 min'
+      WHEN lengthOfTest < 40 THEN '20-40 min'
+      WHEN lengthOfTest < 60 THEN '40-60 min'
       ELSE '60+ min'
     END AS label,
     COUNT(*) AS count
   FROM baseTests
+  WHERE lengthOfTest IS NOT NULL
   GROUP BY label
 )
 
