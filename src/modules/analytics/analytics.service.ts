@@ -457,9 +457,13 @@ avgTestsPerDevice AS (
 ),
 
 modeTestDuration AS (
-  SELECT ROUND(AVG(lengthOfTest),2) AS value
+  SELECT lengthOfTest AS value
   FROM baseTests
+  GROUP BY lengthOfTest
+  ORDER BY COUNT(*) DESC
+  LIMIT 1
 ),
+
 
 avgDailyTests AS (
   SELECT ROUND(AVG(cnt),2) AS value
