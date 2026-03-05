@@ -396,7 +396,7 @@ WITH baseTests AS (
     JSON_VALUE(t.data, '$.organizationName') AS organizationName,
     JSON_VALUE(t.data, '$.organizationId') AS organizationId,
     JSON_VALUE(t.data, '$.motherId') AS motherId,
-    CAST(JSON_VALUE(t.data, '$.lengthOfTest') AS FLOAT64) / 60 AS lengthOfTest
+    CAST(JSON_VALUE(t.data, '$.lengthOfTest') AS FLOAT64) / 60 AS lengthOfTest,
     TIMESTAMP_SECONDS(
       SAFE_CAST(JSON_VALUE(t.data, '$.createdOn._seconds') AS INT64)
     ) AS createdOn
