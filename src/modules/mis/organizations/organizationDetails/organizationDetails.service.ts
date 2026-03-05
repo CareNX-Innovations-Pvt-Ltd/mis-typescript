@@ -883,22 +883,19 @@ const sql = `
   /* ================= DEVICE BASE ================= */
 
   WITH devices AS (
-    SELECT
-      JSON_VALUE(data, '$.documentId') AS deviceId,
-      JSON_VALUE(data, '$.deviceCode') AS deviceCode,
-      JSON_VALUE(data, '$.productType') AS productType,
-      JSON_VALUE(data, '$.isValid') AS isValid,
-      JSON_VALUE(data, '$.warrantyEndDate') AS warrantyEndDate,
-      JSON_VALUE(data, '$.amcValidity') AS amcValidity
+  SELECT
+    JSON_VALUE(data, '$.documentId') AS deviceId,
+    JSON_VALUE(data, '$.deviceCode') AS deviceCode,
+    JSON_VALUE(data, '$.productType') AS productType,
+    JSON_VALUE(data, '$.isValid') AS isValid,
+    JSON_VALUE(data, '$.warrantyEndDate') AS warrantyEndDate,
+    JSON_VALUE(data, '$.amcValidity') AS amcValidity
+  FROM ${DEVICES_TABLE}
+  WHERE JSON_VALUE(data, '$.organizationId') = @orgId
+  AND JSON_VALUE(data, '$.isDeleted') = 'false'
+),
 
-    FROM ${DEVICES_TABLE}
-    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-    AND JSON_VALUE(data, '$.isDeleted') = 'false'
-  ),
-
-  /* ================= TEST COUNT PER DEVICE ================= */
-
-WITH testCounts AS (
+testCounts AS (
   SELECT
     JSON_VALUE(data, '$.deviceId') AS deviceId,
     COUNT(*) AS totalTests
