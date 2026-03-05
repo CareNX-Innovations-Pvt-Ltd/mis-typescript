@@ -885,6 +885,7 @@ const sql = `
   WITH devices AS (
   SELECT
     JSON_VALUE(data, '$.documentId') AS deviceId,
+    JSON_VALUE(data, '$.deviceName') AS deviceName,
     JSON_VALUE(data, '$.deviceCode') AS deviceCode,
     JSON_VALUE(data, '$.productType') AS productType,
     JSON_VALUE(data, '$.isValid') AS isValid,
@@ -893,7 +894,7 @@ const sql = `
   FROM ${DEVICES_TABLE}
   WHERE JSON_VALUE(data, '$.organizationId') = @orgId
   AND JSON_VALUE(data, '$.isDeleted') = 'false'
-),
+)
 
 testCounts AS (
   SELECT
@@ -914,7 +915,7 @@ SELECT
   IFNULL(t.totalTests, 0) AS totalTests
 FROM devices d
 LEFT JOIN testCounts t
-ON d.deviceId = t.deviceId
+ON d.deviceName = t.deviceId
   `;
 
   const [rows] = await bigquery.query({
