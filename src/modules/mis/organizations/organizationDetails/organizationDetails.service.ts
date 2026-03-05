@@ -894,7 +894,7 @@ const sql = `
   FROM ${DEVICES_TABLE}
   WHERE JSON_VALUE(data, '$.organizationId') = @orgId
   AND JSON_VALUE(data, '$.isDeleted') = 'false'
-)
+),
 
 testCounts AS (
   SELECT
