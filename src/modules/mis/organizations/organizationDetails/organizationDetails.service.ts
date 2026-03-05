@@ -980,20 +980,20 @@ const sql = `
 
   /* ================= TEST STATS ================= */
 
-  testStats AS (
-    SELECT
-      JSON_VALUE(data, '$.doctorId') AS doctorId,
-      COUNT(*) AS totalTests,
-      MAX(
-        TIMESTAMP_SECONDS(
-          SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
-        )
-      ) AS lastActive
-    FROM ${TESTS_TABLE}
-    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-    GROUP BY doctorId
-  )
-
+testStats AS (
+  SELECT
+    JSON_VALUE(data,'$.doctorId') AS doctorId,
+    COUNT(*) AS totalTests,
+    MAX(
+      TIMESTAMP_SECONDS(
+        SAFE_CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+      )
+    ) AS lastActive
+  FROM ${TESTS_TABLE}
+  WHERE JSON_VALUE(data,'$.organizationId') = @orgId
+  AND JSON_VALUE(data,'$.doctorId') IS NOT NULL
+  GROUP BY doctorId
+)
   /* ================= FINAL ================= */
 
   SELECT
