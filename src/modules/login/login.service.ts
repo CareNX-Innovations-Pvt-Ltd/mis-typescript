@@ -43,7 +43,7 @@ export const loginService = async (email: string, password: string) => {
       allowedOrganizations: userData?.allowedOrganizations || []
     },
     process.env.JWT_SECRET!,
-    { expiresIn: "8h" }
+    { expiresIn: "24h" }
   );
 
   return {
