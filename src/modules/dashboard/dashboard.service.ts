@@ -671,18 +671,22 @@ export class DashboardService {
     ) AS distribution,
 
     (
-      SELECT ARRAY_AGG(STRUCT(isActive, count))
-      FROM (
-        SELECT
-          CASE
-            WHEN LOWER(isActive) = 'true' THEN TRUE
-            ELSE FALSE
-          END AS isActive,
-          COUNT(*) AS count
-        FROM users_device
-        GROUP BY isActive
-      )
-    ) AS deviceStatus,
+  SELECT ARRAY_AGG(STRUCT(isActive, count))
+  FROM (
+    SELECT
+      normalizedStatus AS isActive,
+      COUNT(*) AS count
+    FROM (
+      SELECT
+        CASE
+          WHEN LOWER(isActive) = 'true' THEN 'true'
+          ELSE 'false'
+        END AS normalizedStatus
+      FROM users_device
+    )
+    GROUP BY normalizedStatus
+  )
+) AS deviceStatus,
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
