@@ -679,7 +679,7 @@ export class DashboardService {
     FROM (
       SELECT
         CASE
-          WHEN LOWER(isActive) = 'true' THEN 'true'
+          WHEN LOWER(IFNULL(isActive, '')) = 'true' THEN 'true'
           ELSE 'false'
         END AS normalizedStatus
       FROM users_device
