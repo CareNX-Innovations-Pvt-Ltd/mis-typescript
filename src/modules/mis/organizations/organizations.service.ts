@@ -106,12 +106,16 @@ const PROJECT = process.env.BQ_PROJECT_ID!;
 const DATASET = process.env.BQ_DATASET!;
 const LOCATION = process.env.BQ_LOCATION || "asia-south1";
 
-/* ================= TABLE ================= */
+/* ================= TABLES ================= */
 
 const ORGANIZATIONS_TABLE = "organizations_raw_latest";
+const TESTS_TABLE = "tests_raw_latest";
 
 const organizationsTable = () =>
   `\`${PROJECT}.${DATASET}.${ORGANIZATIONS_TABLE}\``;
+
+const testsTable = () =>
+  `\`${PROJECT}.${DATASET}.${TESTS_TABLE}\``;
 
 /* ================= SERVICE ================= */
 
@@ -139,12 +143,13 @@ export class OrganizationService {
     /* ================= AUTH FILTER ================= */
 
     const orgFilter = isGroupUser
-  ? `AND JSON_VALUE(data, '$.documentId') IN UNNEST(@orgIds)`
-  : "";
+      ? `AND JSON_VALUE(data, '$.documentId') IN UNNEST(@orgIds)`
+      : "";
 
     /* ================= SQL ================= */
 
-   const sql = `
+    const sql = `
+WITH organizations AS (
   SELECT
     JSON_VALUE(data, '$.documentId') AS id,
     JSON_VALUE(data, '$.name') AS name,
@@ -166,7 +171,43 @@ export class OrganizationService {
   WHERE JSON_VALUE(data, '$.type') = 'organization'
   ${searchFilter}
   ${orgFilter}
-  ORDER BY createdOn DESC
+),
+
+tests AS (
+  SELECT
+    JSON_VALUE(data, '$.organizationId') AS organizationId,
+    CAST(JSON_VALUE(data, '$.lengthOfTest') AS INT64) AS lengthOfTest
+  FROM ${testsTable()}
+)
+
+SELECT
+  o.*,
+
+  ROUND(
+    SAFE_DIVIDE(
+      SUM(t.lengthOfTest) / 3600,
+      DATE_DIFF(CURRENT_DATE(), DATE(o.createdOn), DAY)
+    ),2
+  ) AS utilization
+
+FROM organizations o
+LEFT JOIN tests t
+ON t.organizationId = o.id
+
+GROUP BY
+  o.id,
+  o.name,
+  o.type,
+  o.city,
+  o.state,
+  o.contactPerson,
+  o.contactNumber,
+  o.status,
+  o.devices,
+  o.totalTests,
+  o.createdOn
+
+ORDER BY o.createdOn DESC
 `;
 
     const options: any = {
@@ -195,10 +236,10 @@ export class OrganizationService {
       contactNumber: row.contactNumber,
       amcStatus: row.amcStatus,
       salesChannel: row.salesChannel,
-      createdOn: row.createdOn? row.createdOn.value || row.createdOn: null,      
+      createdOn: row.createdOn ? row.createdOn.value || row.createdOn : null,
       devices: row.devices || 0,
       totalTests: row.totalTests || 0,
-      utilization: row.utilization || 0,
+      utilization: row.utilization || 0
     }));
 
     cache.set(cacheKey, result, 600);
