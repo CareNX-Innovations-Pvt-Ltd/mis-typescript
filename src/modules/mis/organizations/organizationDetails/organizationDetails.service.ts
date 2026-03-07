@@ -707,8 +707,12 @@ activeDevices AS (
   AND JSON_VALUE(data, '$.isValid') = 'true'
 ),
 
-totalTests AS (
-  SELECT COUNT(*) AS totalTests
+testStats AS (
+  SELECT
+    COUNT(*) AS totalTests,
+    SUM(
+      SAFE_CAST(JSON_VALUE(data, '$.lengthOfTest') AS INT64)
+    ) AS totalTestSeconds
   FROM ${TESTS_TABLE}
   WHERE JSON_VALUE(data, '$.organizationId') = @orgId
 )
@@ -717,13 +721,13 @@ SELECT
   o.*,
   d.totalDevices,
   a.activeDevices,
-  t.totalTests
+  t.totalTests,
+  t.totalTestSeconds
 
 FROM org o
 CROSS JOIN deviceStats d
 CROSS JOIN activeDevices a
-CROSS JOIN totalTests t
-`;
+CROSS JOIN testStats t`;
 
     const [rows] = await bigquery.query({
       query: sql,
@@ -738,11 +742,26 @@ CROSS JOIN totalTests t
     const activeDevices = Number(row.activeDevices || 0);
     const last30Tests = Number(row.last30Tests || 0);
 
-    const maxCapacity = activeDevices * 8 * 30;
-    const utilization =
-      maxCapacity > 0
-        ? Math.min(Math.round((last30Tests / maxCapacity) * 100), 100)
-        : 0;
+    const totalTestSeconds = Number(row.totalTestSeconds || 0);
+
+const days = row.registeredAt
+  ? Math.max(
+      Math.floor(
+        (Date.now() -
+          new Date(row.registeredAt.value || row.registeredAt).getTime()) /
+          (1000 * 60 * 60 * 24)
+      ),
+      1
+    )
+  : 1;
+
+const devices = Number(row.totalDevices || 0);
+
+const utilization =
+  devices > 0
+    ? (totalTestSeconds / 3600) / (days * devices)
+    : 0;
+    
 
     const amcStatus =
       Number(row.underAmc) > 0 ? "Active" : "Inactive";
@@ -766,8 +785,7 @@ registeredAt: row.registeredAt
       underAmc: Number(row.underAmc),
       amcStatus,
       totalTests: Number(row.totalTests),
-      utilizationPercent: utilization
-    };
+utilizationHoursPerDevicePerDay: Number(utilization.toFixed(2))    };
 
     cache.set(cacheKey, result, 1800);
     return result;
