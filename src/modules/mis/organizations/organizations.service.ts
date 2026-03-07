@@ -184,11 +184,11 @@ SELECT
   o.*,
 
   ROUND(
-    SAFE_DIVIDE(
-      SUM(t.lengthOfTest) / 3600,
-      DATE_DIFF(CURRENT_DATE(), DATE(o.createdOn), DAY)
-    ),2
-  ) AS utilization
+  SAFE_DIVIDE(
+    SUM(t.lengthOfTest) / 3600,
+    DATE_DIFF(CURRENT_DATE(), DATE(o.createdOn), DAY) * o.devices
+  ),2
+) AS utilization
 
 FROM organizations o
 LEFT JOIN tests t
