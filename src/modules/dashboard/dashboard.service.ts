@@ -676,7 +676,7 @@ const dateFilter =
     FROM users_device
   )
   GROUP BY isActive
-) AS deviceStatus
+) AS deviceStatus,
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
