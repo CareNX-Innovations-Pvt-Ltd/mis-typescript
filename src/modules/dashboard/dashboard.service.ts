@@ -535,17 +535,20 @@ export class DashboardService {
         ? user.allowedOrganizations.map((id: string) => id.trim())
         : [];
 
-const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')}:${JSON.stringify(query)}`;    const cached = cache.get(cacheKey);
+    const cacheKey = `dashboard:${user?.uid}:${user?.allowedOrganizations?.join(',')}:${JSON.stringify(query)}`;
+
+    const cached = cache.get(cacheKey);
     if (cached) return cached;
 
-const dateFilter =
-  from && to
-    ? `
+    const dateFilter =
+      from && to
+        ? `
       AND DATE(TIMESTAMP_SECONDS(
         CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
       )) BETWEEN @from AND @to
     `
-    : '';
+        : '';
+
     /* ---------- TREND EXPRESSION ---------- */
 
     let trendExpr = `
@@ -620,7 +623,6 @@ const dateFilter =
       (SELECT COUNT(*) FROM ${table('mothers')}
        WHERE ${orgFilter}
         ${dateFilter}
-
       ) AS mothers,
 
       (SELECT COUNT(*) FROM device_base) AS devices,
@@ -628,7 +630,6 @@ const dateFilter =
       (SELECT COUNT(*) FROM ${table('tests')}
        WHERE ${orgFilter}
         ${dateFilter}
-
       ) AS tests
 
     ) AS counts,
@@ -670,20 +671,25 @@ const dateFilter =
     ) AS distribution,
 
     (
-  SELECT ARRAY_AGG(STRUCT(isActive, COUNT(*) AS count))
-  FROM (
-    SELECT IF(isActive IS TRUE, TRUE, FALSE) AS isActive
-    FROM users_device
-  )
-  GROUP BY isActive
-) AS deviceStatus,
+      SELECT ARRAY_AGG(STRUCT(isActive, count))
+      FROM (
+        SELECT
+          CASE
+            WHEN LOWER(isActive) = 'true' THEN TRUE
+            ELSE FALSE
+          END AS isActive,
+          COUNT(*) AS count
+        FROM users_device
+        GROUP BY isActive
+      )
+    ) AS deviceStatus,
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
        FROM (
          SELECT ${trendExpr} AS period, COUNT(*) AS count
          FROM ${table('mothers')}
-         WHERE  ${orgFilter}
+         WHERE ${orgFilter}
          GROUP BY period
          ORDER BY period
        )
@@ -695,7 +701,6 @@ const dateFilter =
          FROM ${table('tests')}
          WHERE ${orgFilter}
           ${dateFilter}
-
          GROUP BY period
          ORDER BY period
        )
@@ -704,15 +709,15 @@ const dateFilter =
     `;
 
     const queryOptions: any = {
-  query: sql,
-  location: LOCATION,
-  params: {}
-};
+      query: sql,
+      location: LOCATION,
+      params: {}
+    };
 
-if (from && to) {
-  queryOptions.params.from = from;
-  queryOptions.params.to = to;
-}
+    if (from && to) {
+      queryOptions.params.from = from;
+      queryOptions.params.to = to;
+    }
 
     if (isGroupUser) {
       queryOptions.params.orgIds = allowedOrgIds;
@@ -720,14 +725,14 @@ if (from && to) {
 
     const [rows] = await bigquery.query(queryOptions);
 
-const result = rows[0];
+    const result = rows[0];
 
-if (isGroupUser) {
-  result.counts.organizations = allowedOrgIds.length;
-}
+    if (isGroupUser) {
+      result.counts.organizations = allowedOrgIds.length;
+    }
 
-cache.set(cacheKey, result, 1800);
+    cache.set(cacheKey, result, 1800);
 
-return result;
+    return result;
   }
 }
