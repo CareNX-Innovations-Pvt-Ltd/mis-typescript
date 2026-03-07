@@ -669,13 +669,14 @@ const dateFilter =
      )
     ) AS distribution,
 
-    (SELECT ARRAY_AGG(STRUCT(isActive, count))
-     FROM (
-       SELECT isActive, COUNT(*) AS count
-       FROM users_device
-       GROUP BY isActive
-     )
-    ) AS deviceStatus,
+    (
+  SELECT ARRAY_AGG(STRUCT(isActive, COUNT(*) AS count))
+  FROM (
+    SELECT IF(isActive IS TRUE, TRUE, FALSE) AS isActive
+    FROM users_device
+  )
+  GROUP BY isActive
+) AS deviceStatus
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
