@@ -597,24 +597,24 @@ export class DashboardService {
     ),
 
     users_device AS (
-  SELECT
-    JSON_VALUE(data,'$.organizationId') AS organizationId,
-    JSON_VALUE(data,'$.isActive') AS isActive,
-    SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
-  FROM ${table('users')}
-  WHERE JSON_VALUE(data,'$.type') = 'device'
-  AND ${orgFilter}
-),
+      SELECT
+        JSON_VALUE(data,'$.organizationId') AS organizationId,
+        JSON_VALUE(data,'$.isActive') AS isActive,
+        SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
+      FROM ${table('users')}
+      WHERE JSON_VALUE(data,'$.type') = 'device'
+      AND ${orgFilter}
+    ),
 
-org_last_test AS (
-  SELECT
-    JSON_VALUE(data,'$.organizationId') AS organizationId,
-    MAX(DATE(TIMESTAMP_SECONDS(
-      CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-    ))) AS lastTestDate
-  FROM ${table('tests')}
-  GROUP BY organizationId
-)
+    org_last_test AS (
+      SELECT
+        JSON_VALUE(data,'$.organizationId') AS organizationId,
+        MAX(DATE(TIMESTAMP_SECONDS(
+          CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+        ))) AS lastTestDate
+      FROM ${table('tests')}
+      GROUP BY organizationId
+    )
 
     SELECT
 
@@ -638,65 +638,65 @@ org_last_test AS (
     STRUCT(
       (SELECT COUNT(*) FROM device_base
        WHERE warrantySec IS NOT NULL
-       AND DATE(TIMESTAMP_SECONDS(warrantySec)) >= CURRENT_DATE()
+       AND DATE(TIMESTAMP_SECONDS(warrantySec)) >= CURRENT_DATE("Asia/Kolkata")
       ) AS underWarranty,
 
       (SELECT COUNT(*) FROM device_base
        WHERE warrantySec IS NOT NULL
-       AND DATE(TIMESTAMP_SECONDS(warrantySec)) < CURRENT_DATE()
+       AND DATE(TIMESTAMP_SECONDS(warrantySec)) < CURRENT_DATE("Asia/Kolkata")
       ) AS outOfWarranty
     ) AS warranty,
 
     STRUCT(
 
-  (
-    SELECT COUNT(*)
-    FROM users_device
-    WHERE amcSec IS NOT NULL
-    AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE("Asia/Kolkata")
-  ) AS underAMC,
+      (
+        SELECT COUNT(*)
+        FROM users_device
+        WHERE amcSec IS NOT NULL
+        AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE("Asia/Kolkata")
+      ) AS underAMC,
 
-  (
-    SELECT COUNT(*)
-    FROM users_device
-    WHERE amcSec IS NULL
-    OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE("Asia/Kolkata")
-  ) AS withoutAMC
+      (
+        SELECT COUNT(*)
+        FROM users_device
+        WHERE amcSec IS NULL
+        OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE("Asia/Kolkata")
+      ) AS withoutAMC
 
-) AS amc,
+    ) AS amc,
 
     (SELECT COUNT(*) FROM org_last_test
-     WHERE lastTestDate < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
+     WHERE lastTestDate < DATE_SUB(CURRENT_DATE("Asia/Kolkata"), INTERVAL 1 MONTH)
     ) AS lowUsageOrganizations,
 
     (
-  SELECT ARRAY_AGG(STRUCT(productType, count))
-  FROM (
-    SELECT 
-      COALESCE(productType, 'others') AS productType,
-      COUNT(*) AS count
-    FROM device_base
-    GROUP BY productType
-  )
-) AS distribution,
+      SELECT ARRAY_AGG(STRUCT(productType, count))
+      FROM (
+        SELECT 
+          COALESCE(productType, 'others') AS productType,
+          COUNT(*) AS count
+        FROM device_base
+        GROUP BY productType
+      )
+    ) AS distribution,
 
     (
-  SELECT ARRAY_AGG(STRUCT(isActive, count))
-  FROM (
-    SELECT
-      normalizedStatus AS isActive,
-      COUNT(*) AS count
-    FROM (
-      SELECT
-        CASE
-          WHEN LOWER(IFNULL(isActive, '')) = 'true' THEN 'true'
-          ELSE 'false'
-        END AS normalizedStatus
-      FROM users_device
-    )
-    GROUP BY normalizedStatus
-  )
-) AS deviceStatus,
+      SELECT ARRAY_AGG(STRUCT(isActive, count))
+      FROM (
+        SELECT
+          normalizedStatus AS isActive,
+          COUNT(*) AS count
+        FROM (
+          SELECT
+            CASE
+              WHEN LOWER(IFNULL(isActive, '')) = 'true' THEN 'true'
+              ELSE 'false'
+            END AS normalizedStatus
+          FROM users_device
+        )
+        GROUP BY normalizedStatus
+      )
+    ) AS deviceStatus,
 
     STRUCT(
       (SELECT ARRAY_AGG(STRUCT(period,count))
