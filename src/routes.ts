@@ -16,11 +16,12 @@ import OrganizationDetailsRoutes from "./modules/mis/organizations/organizationD
 import { authenticate } from "./middleware/auth.middleware.js";
 import loginRoutes from "./modules/login/login.routes.js";
 import { authorizeRoles } from "./middleware/role.middleware.js";
+import  deregister  from "./modules/deregister/deregister/deregister.routes.js";
 const router = Router();
 
 router.use("/auth", loginRoutes);
 router.use(authenticate);
-
+router.use("/deregister", deregister);
 router.use("/mis/organizations", authorizeRoles("admin", "groupUser"), organizationMisRoutes);
 router.use("/mis/devices", authorizeRoles("admin", "groupUser"), deviceMisRoutes);
 router.use("/registration/organizations", authorizeRoles("admin"), organizationRegistrationRoutes);
