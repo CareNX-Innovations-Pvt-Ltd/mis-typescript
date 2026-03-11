@@ -21,7 +21,8 @@ const router = Router();
 
 router.use("/auth", loginRoutes);
 router.use(authenticate);
-router.use("/deregister", deregister);
+router.use("/deregister", authenticate,
+  authorizeRoles("admin"),deregister);
 router.use("/mis/organizations", authorizeRoles("admin", "groupUser"), organizationMisRoutes);
 router.use("/mis/devices", authorizeRoles("admin", "groupUser"), deviceMisRoutes);
 router.use("/registration/organizations", authorizeRoles("admin"), organizationRegistrationRoutes);
