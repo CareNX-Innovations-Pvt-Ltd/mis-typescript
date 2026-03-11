@@ -590,7 +590,7 @@ export class DashboardService {
       SELECT
         JSON_VALUE(data,'$.organizationId') AS organizationId,
         JSON_VALUE(data,'$.productType') AS productType,
-        SAFE_CAST(JSON_VALUE(data,'$.warrantyEndDate._seconds') AS INT64) AS warrantySec,
+        PARSE_DATE('%Y-%m-%d', JSON_VALUE(data,'$.warrantyEndDate')) AS warrantyDate,
         SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
       FROM ${table('devices')}
       WHERE ${orgFilter}
@@ -636,16 +636,20 @@ export class DashboardService {
     ) AS counts,
 
     STRUCT(
-      (SELECT COUNT(*) FROM device_base
-       WHERE warrantySec IS NOT NULL
-       AND DATE(TIMESTAMP_SECONDS(warrantySec)) >= CURRENT_DATE("Asia/Kolkata")
-      ) AS underWarranty,
+  (
+    SELECT COUNT(*)
+    FROM device_base
+    WHERE warrantyDate IS NOT NULL
+    AND warrantyDate >= CURRENT_DATE("Asia/Kolkata")
+  ) AS underWarranty,
 
-      (SELECT COUNT(*) FROM device_base
-       WHERE warrantySec IS NOT NULL
-       AND DATE(TIMESTAMP_SECONDS(warrantySec)) < CURRENT_DATE("Asia/Kolkata")
-      ) AS outOfWarranty
-    ) AS warranty,
+  (
+    SELECT COUNT(*)
+    FROM device_base
+    WHERE warrantyDate IS NOT NULL
+    AND warrantyDate < CURRENT_DATE("Asia/Kolkata")
+  ) AS outOfWarranty
+) AS warranty,
 
     STRUCT(
 
