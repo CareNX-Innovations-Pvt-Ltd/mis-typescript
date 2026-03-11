@@ -66,107 +66,123 @@ export class DeviceService {
   /* ================= GET ALL ================= */
 
   static async getAll(
-    search: string | undefined,
-    user: any
-  ): Promise<IDeviceMis[]> {
+  search: string | undefined,
+  user: any,
+  page: number = 1,
+  limit: number = 25
+): Promise<any> {
 
-    this.validateAccess(user);
+  this.validateAccess(user);
 
-    const isGroupUser = user?.type === "groupUser";
+  const isGroupUser = user?.type === "groupUser";
 
-    const allowedOrgIds: string[] =
-      isGroupUser && Array.isArray(user.allowedOrganizations)
-        ? user.allowedOrganizations.map((id: string) => id.trim())
-        : [];
+  const allowedOrgIds: string[] =
+    isGroupUser && Array.isArray(user.allowedOrganizations)
+      ? user.allowedOrganizations.map((id: string) => id.trim())
+      : [];
 
-    const cacheKey = `mis:devices:${user?.type}:${search || "all"}`;
-    const cached = cache.get<IDeviceMis[]>(cacheKey);
-    if (cached) return cached;
+  const offset = (page - 1) * limit;
 
-    /* ================= SEARCH FILTER ================= */
+  const searchFilter = search
+    ? `AND LOWER(JSON_VALUE(data, '$.deviceCode')) LIKE LOWER(@search)`
+    : "";
 
-    const searchFilter = search
-      ? `AND LOWER(JSON_VALUE(data, '$.deviceCode')) LIKE LOWER(@search)`
-      : "";
+  const orgFilter = isGroupUser
+    ? `AND JSON_VALUE(data, '$.organizationId') IN UNNEST(@orgIds)`
+    : "";
 
-    /* ================= ORG FILTER ================= */
+  /* ================= DATA QUERY ================= */
 
-    const orgFilter = isGroupUser
-      ? `AND JSON_VALUE(data, '$.organizationId') IN UNNEST(@orgIds)`
-      : "";
+  const sql = `
+    SELECT
+      JSON_VALUE(data, '$.documentId') AS deviceId,
+      JSON_VALUE(data, '$.deviceCode') AS deviceCode,
+      JSON_VALUE(data, '$.deviceName') AS deviceName,
+      JSON_VALUE(data, '$.productType') AS productType,
+      JSON_VALUE(data, '$.organizationId') AS organizationId,
+      JSON_VALUE(data, '$.isValid') AS isValid,
+      JSON_VALUE(data, '$.warrantyEndDate') AS warrantyEndDate,
+      JSON_VALUE(data, '$.amcValidity') AS amcValidity,
 
-    /* ================= SQL ================= */
+      TIMESTAMP_SECONDS(
+        SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
+      ) AS createdOn
 
-    const sql = `
-      SELECT
-        JSON_VALUE(data, '$.documentId') AS deviceId,
-        JSON_VALUE(data, '$.deviceCode') AS deviceCode,
-        JSON_VALUE(data, '$.deviceName') AS deviceName,
-        JSON_VALUE(data, '$.productType') AS productType,
-        JSON_VALUE(data, '$.organizationId') AS organizationId,
-        JSON_VALUE(data, '$.isValid') AS isValid,
-        JSON_VALUE(data, '$.warrantyEndDate') AS warrantyEndDate,
-        JSON_VALUE(data, '$.amcValidity') AS amcValidity,
+    FROM ${devicesTable()}
+    WHERE JSON_VALUE(data, '$.isDeleted') = 'false'
+    ${searchFilter}
+    ${orgFilter}
+    ORDER BY createdOn DESC
+    LIMIT @limit
+    OFFSET @offset
+  `;
 
-        TIMESTAMP_SECONDS(
-          SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
-        ) AS createdOn
+  /* ================= COUNT QUERY ================= */
 
-      FROM ${devicesTable()}
-      WHERE JSON_VALUE(data, '$.isDeleted') = 'false'
-      ${searchFilter}
-      ${orgFilter}
-      ORDER BY createdOn DESC
-    `;
+  const countSql = `
+    SELECT COUNT(*) AS total
+    FROM ${devicesTable()}
+    WHERE JSON_VALUE(data, '$.isDeleted') = 'false'
+    ${searchFilter}
+    ${orgFilter}
+  `;
 
-    const options: any = {
-      query: sql,
-      location: LOCATION,
+  const params = {
+    ...(search && { search: `%${search}%` }),
+    ...(isGroupUser && { orgIds: allowedOrgIds }),
+    limit,
+    offset
+  };
+
+  const [rows] = await bigquery.query({
+    query: sql,
+    location: LOCATION,
+    params
+  });
+
+  const [countRows] = await bigquery.query({
+    query: countSql,
+    location: LOCATION,
+    params
+  });
+
+  const total = Number(countRows[0]?.total || 0);
+
+  const today = new Date();
+
+  const data: IDeviceMis[] = rows.map((row: any) => {
+
+    const warrantyEnd = row.warrantyEndDate
+      ? new Date(row.warrantyEndDate)
+      : null;
+
+    const amcValidity = row.amcValidity
+      ? new Date(row.amcValidity)
+      : null;
+
+    const amcStatus =
+      amcValidity && amcValidity > today
+        ? "Active"
+        : "Inactive";
+
+    return {
+      deviceId: row.deviceId,
+      deviceCode: row.deviceCode,
+      deviceName: row.deviceName,
+      productType: row.productType || "main",
+      organizationId: row.organizationId,
+      status: row.isValid === "true" ? "Active" : "Inactive",
+      warrantyEnd,
+      amcStatus,
+      createdOn: row.createdOn || null
     };
+  });
 
-    if (search || isGroupUser) {
-      options.params = {
-        ...(search && { search: `%${search}%` }),
-        ...(isGroupUser && { orgIds: allowedOrgIds })
-      };
-    }
-
-    const [rows] = await bigquery.query(options);
-
-    /* ================= FORMAT RESPONSE ================= */
-
-    const today = new Date();
-
-    const result: IDeviceMis[] = rows.map((row: any) => {
-
-      const warrantyEnd = row.warrantyEndDate
-        ? new Date(row.warrantyEndDate)
-        : null;
-
-      const amcValidity = row.amcValidity
-        ? new Date(row.amcValidity)
-        : null;
-
-      const amcStatus =
-        amcValidity && amcValidity > today
-          ? "Active"
-          : "Inactive";
-
-      return {
-        deviceId: row.deviceId,
-        deviceCode: row.deviceCode,
-        deviceName: row.deviceName,
-        productType: row.productType || "main",
-        organizationId: row.organizationId,
-        status: row.isValid === "true" ? "Active" : "Inactive",
-        warrantyEnd,
-        amcStatus,
-        createdOn: row.createdOn || null
-      };
-    });
-
-    cache.set(cacheKey, result, 600); // cache 10 mins
-
-    return result;
-  }
+  return {
+    data,
+    total,
+    page,
+    limit
+  };
+}
 }
