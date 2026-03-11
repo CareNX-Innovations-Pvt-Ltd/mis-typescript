@@ -721,15 +721,13 @@ warrantyStats AS (
 amcStats AS (
   SELECT
     COUNTIF(
-      DATE(
-        TIMESTAMP_SECONDS(
-          SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64)
-        )
-      ) >= CURRENT_DATE("Asia/Kolkata")
+      SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) IS NOT NULL
+      AND TIMESTAMP_SECONDS(
+        SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64)
+      ) >= CURRENT_TIMESTAMP()
     ) AS underAmc
   FROM ${DEVICES_TABLE}
   WHERE JSON_VALUE(data,'$.organizationId') = @orgId
-  AND JSON_VALUE(data,'$.isDeleted') = 'false'
 ),
 
 testStats AS (
