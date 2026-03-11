@@ -3,6 +3,6 @@ import { deregisterDeviceController } from "../deregister/deregister.controller.
 
 const router = express.Router();
 
-router.patch("/deregister", deregisterDeviceController);
+router.patch("/", deregisterDeviceController);
 
 export default router;
