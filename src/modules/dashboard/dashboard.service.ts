@@ -635,20 +635,21 @@ export class DashboardService {
 
     ) AS counts,
 
-    STRUCT(
+   STRUCT(
+
   (
     SELECT COUNT(*)
     FROM device_base
-    WHERE warrantyDate IS NOT NULL
-    AND warrantyDate >= CURRENT_DATE("Asia/Kolkata")
+    WHERE warrantyDate >= CURRENT_DATE("Asia/Kolkata")
   ) AS underWarranty,
 
   (
     SELECT COUNT(*)
     FROM device_base
-    WHERE warrantyDate IS NOT NULL
-    AND warrantyDate < CURRENT_DATE("Asia/Kolkata")
+    WHERE warrantyDate < CURRENT_DATE("Asia/Kolkata")
+       OR warrantyDate IS NULL
   ) AS outOfWarranty
+
 ) AS warranty,
 
     STRUCT(
