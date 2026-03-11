@@ -647,16 +647,30 @@ export class DashboardService {
     ) AS warranty,
 
     STRUCT(
-      (SELECT COUNT(*) FROM device_base
-       WHERE amcSec IS NOT NULL
-       AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE()
-      ) AS underAMC,
 
-      (SELECT COUNT(*) FROM device_base
-       WHERE amcSec IS NULL
-       OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE()
-      ) AS withoutAMC
-    ) AS amc,
+  (
+    SELECT COUNT(*)
+    FROM device_base
+    WHERE ARRAY_LENGTH(amcLog) > 0
+    AND DATE(
+          TIMESTAMP_SECONDS(
+            amcLog[OFFSET(ARRAY_LENGTH(amcLog)-1)].amcValidity._seconds
+          )
+        ) >= CURRENT_DATE("Asia/Kolkata")
+  ) AS underAMC,
+
+  (
+    SELECT COUNT(*)
+    FROM device_base
+    WHERE ARRAY_LENGTH(amcLog) = 0
+    OR DATE(
+          TIMESTAMP_SECONDS(
+            amcLog[OFFSET(ARRAY_LENGTH(amcLog)-1)].amcValidity._seconds
+          )
+        ) < CURRENT_DATE("Asia/Kolkata")
+  ) AS withoutAMC
+
+) AS amc,
 
     (SELECT COUNT(*) FROM org_last_test
      WHERE lastTestDate < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
