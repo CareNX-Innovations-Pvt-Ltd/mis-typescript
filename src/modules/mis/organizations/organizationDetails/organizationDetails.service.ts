@@ -718,6 +718,20 @@ warrantyStats AS (
   AND JSON_VALUE(data,'$.isDeleted') = 'false'
 ),
 
+amcStats AS (
+  SELECT
+    COUNTIF(
+      DATE(
+        TIMESTAMP_SECONDS(
+          SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64)
+        )
+      ) >= CURRENT_DATE("Asia/Kolkata")
+    ) AS underAmc
+  FROM ${DEVICES_TABLE}
+  WHERE JSON_VALUE(data,'$.organizationId') = @orgId
+  AND JSON_VALUE(data,'$.isDeleted') = 'false'
+),
+
 testStats AS (
   SELECT
     COUNT(*) AS totalTests,
@@ -733,7 +747,7 @@ SELECT
   d.totalDevices,
   a.activeDevices,
   w.underWarranty,
-
+  m.underAmc,
   t.totalTests,
   t.totalTestSeconds
 
@@ -741,6 +755,7 @@ FROM org o
 CROSS JOIN deviceStats d
 CROSS JOIN activeDevices a
 CROSS JOIN warrantyStats w
+CROSS JOIN amcStats m
 CROSS JOIN testStats t`;
 
     const [rows] = await bigquery.query({
