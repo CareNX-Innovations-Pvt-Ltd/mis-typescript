@@ -597,13 +597,14 @@ export class DashboardService {
     ),
 
     users_device AS (
-      SELECT
-        JSON_VALUE(data,'$.organizationId') AS organizationId,
-        JSON_VALUE(data,'$.isActive') AS isActive
-      FROM ${table('users')}
-      WHERE JSON_VALUE(data,'$.type') = 'device'
-      AND ${orgFilter}
-    ),
+  SELECT
+    JSON_VALUE(data,'$.organizationId') AS organizationId,
+    JSON_VALUE(data,'$.isActive') AS isActive,
+    SAFE_CAST(JSON_VALUE(data,'$.amcValidity._seconds') AS INT64) AS amcSec
+  FROM ${table('users')}
+  WHERE JSON_VALUE(data,'$.type') = 'device'
+  AND ${orgFilter}
+)
 
     org_last_test AS (
       SELECT
@@ -647,16 +648,22 @@ export class DashboardService {
     ) AS warranty,
 
     STRUCT(
-  (SELECT COUNT(*) FROM device_base
-   WHERE amcSec IS NOT NULL
-   AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE("Asia/Kolkata")
+
+  (
+    SELECT COUNT(*)
+    FROM users_device
+    WHERE amcSec IS NOT NULL
+    AND DATE(TIMESTAMP_SECONDS(amcSec)) >= CURRENT_DATE("Asia/Kolkata")
   ) AS underAMC,
 
-  (SELECT COUNT(*) FROM device_base
-   WHERE amcSec IS NULL
-   OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE("Asia/Kolkata")
+  (
+    SELECT COUNT(*)
+    FROM users_device
+    WHERE amcSec IS NULL
+    OR DATE(TIMESTAMP_SECONDS(amcSec)) < CURRENT_DATE("Asia/Kolkata")
   ) AS withoutAMC
-) AS amc,
+
+) AS amc
 
     (SELECT COUNT(*) FROM org_last_test
      WHERE lastTestDate < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
