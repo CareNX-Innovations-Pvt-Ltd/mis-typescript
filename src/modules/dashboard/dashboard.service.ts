@@ -662,13 +662,16 @@ export class DashboardService {
      WHERE lastTestDate < DATE_SUB(CURRENT_DATE(), INTERVAL 1 MONTH)
     ) AS lowUsageOrganizations,
 
-    (SELECT ARRAY_AGG(STRUCT(productType, count))
-     FROM (
-       SELECT productType, COUNT(*) AS count
-       FROM device_base
-       GROUP BY productType
-     )
-    ) AS distribution,
+    (
+  SELECT ARRAY_AGG(STRUCT(productType, count))
+  FROM (
+    SELECT 
+      COALESCE(productType, 'others') AS productType,
+      COUNT(*) AS count
+    FROM device_base
+    GROUP BY productType
+  )
+) AS distribution,
 
     (
   SELECT ARRAY_AGG(STRUCT(isActive, count))
