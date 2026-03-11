@@ -49,23 +49,45 @@ const orgId = OrganizationDetailsController.getOrgId(req);
     }
   }
 
-  static async getMothers(req: Request, res: Response) {
-    try {
-      const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getMothers(orgId, req.user);
-      res.json({ success: true, payload: data });
-    } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message });
-    }
+ static async getMothers(req: Request, res: Response) {
+  try {
+    const orgId = OrganizationDetailsController.getOrgId(req);
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 25;
+
+    const data = await OrganizationDetailsService.getMothers(
+      orgId,
+      req.user,
+      page,
+      limit
+    );
+
+    res.json({ success: true, payload: data });
+
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
+}
 
   static async getTests(req: Request, res: Response) {
-    try {
-      const orgId = OrganizationDetailsController.getOrgId(req);
-      const data = await OrganizationDetailsService.getTests(orgId, req.user);
-      res.json({ success: true, payload: data });
-    } catch (err: any) {
-      res.status(500).json({ success: false, message: err.message });
-    }
+  try {
+    const orgId = OrganizationDetailsController.getOrgId(req);
+
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 25;
+
+    const data = await OrganizationDetailsService.getTests(
+      orgId,
+      req.user,
+      page,
+      limit
+    );
+
+    res.json({ success: true, payload: data });
+
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
+}
 }
