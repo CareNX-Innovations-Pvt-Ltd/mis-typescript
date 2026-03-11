@@ -604,17 +604,17 @@ export class DashboardService {
   FROM ${table('users')}
   WHERE JSON_VALUE(data,'$.type') = 'device'
   AND ${orgFilter}
-)
+),
 
-    org_last_test AS (
-      SELECT
-        JSON_VALUE(data,'$.organizationId') AS organizationId,
-        MAX(DATE(TIMESTAMP_SECONDS(
-          CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
-        ))) AS lastTestDate
-      FROM ${table('tests')}
-      GROUP BY organizationId
-    )
+org_last_test AS (
+  SELECT
+    JSON_VALUE(data,'$.organizationId') AS organizationId,
+    MAX(DATE(TIMESTAMP_SECONDS(
+      CAST(JSON_VALUE(data,'$.createdOn._seconds') AS INT64)
+    ))) AS lastTestDate
+  FROM ${table('tests')}
+  GROUP BY organizationId
+)
 
     SELECT
 
