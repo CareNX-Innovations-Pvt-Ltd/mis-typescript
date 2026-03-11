@@ -707,6 +707,17 @@ activeDevices AS (
   AND JSON_VALUE(data, '$.isValid') = 'true'
 ),
 
+warrantyStats AS (
+  SELECT
+    COUNTIF(
+      PARSE_DATE('%Y-%m-%d', JSON_VALUE(data,'$.warrantyEndDate'))
+      >= CURRENT_DATE("Asia/Kolkata")
+    ) AS underWarranty
+  FROM ${DEVICES_TABLE}
+  WHERE JSON_VALUE(data,'$.organizationId') = @orgId
+  AND JSON_VALUE(data,'$.isDeleted') = 'false'
+),
+
 testStats AS (
   SELECT
     COUNT(*) AS totalTests,
@@ -721,12 +732,15 @@ SELECT
   o.*,
   d.totalDevices,
   a.activeDevices,
+  w.underWarranty,
+
   t.totalTests,
   t.totalTestSeconds
 
 FROM org o
 CROSS JOIN deviceStats d
 CROSS JOIN activeDevices a
+CROSS JOIN warrantyStats w
 CROSS JOIN testStats t`;
 
     const [rows] = await bigquery.query({
