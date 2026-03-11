@@ -94,28 +94,44 @@ export class DeviceService {
   /* ================= DATA QUERY ================= */
 
   const sql = `
-    SELECT
-      JSON_VALUE(data, '$.documentId') AS deviceId,
-      JSON_VALUE(data, '$.deviceCode') AS deviceCode,
-      JSON_VALUE(data, '$.deviceName') AS deviceName,
-      JSON_VALUE(data, '$.productType') AS productType,
-      JSON_VALUE(data, '$.organizationId') AS organizationId,
-      JSON_VALUE(data, '$.isValid') AS isValid,
-      JSON_VALUE(data, '$.warrantyEndDate') AS warrantyEndDate,
-      JSON_VALUE(data, '$.amcValidity') AS amcValidity,
+WITH testCounts AS (
+  SELECT
+    JSON_VALUE(data, '$.deviceId') AS deviceId,
+    COUNT(*) AS totalTests
+  FROM \`${PROJECT}.${DATASET}.tests_raw_latest\`
+  WHERE JSON_VALUE(data, '$.deviceId') IS NOT NULL
+  GROUP BY deviceId
+)
 
-      TIMESTAMP_SECONDS(
-        SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
-      ) AS createdOn
+SELECT
+  JSON_VALUE(d.data, '$.documentId') AS deviceId,
+  JSON_VALUE(d.data, '$.deviceCode') AS deviceCode,
+  JSON_VALUE(d.data, '$.deviceName') AS deviceName,
+  JSON_VALUE(d.data, '$.productType') AS productType,
+  JSON_VALUE(d.data, '$.organizationId') AS organizationId,
+  JSON_VALUE(d.data, '$.isValid') AS isValid,
+  JSON_VALUE(d.data, '$.warrantyEndDate') AS warrantyEndDate,
+  JSON_VALUE(d.data, '$.amcValidity') AS amcValidity,
 
-    FROM ${devicesTable()}
-    WHERE JSON_VALUE(data, '$.isDeleted') = 'false'
-    ${searchFilter}
-    ${orgFilter}
-    ORDER BY createdOn DESC
-    LIMIT @limit
-    OFFSET @offset
-  `;
+  TIMESTAMP_SECONDS(
+    SAFE_CAST(JSON_VALUE(d.data, '$.createdOn._seconds') AS INT64)
+  ) AS createdOn,
+
+  IFNULL(t.totalTests, 0) AS totalTests
+
+FROM ${devicesTable()} d
+
+LEFT JOIN testCounts t
+ON JSON_VALUE(d.data, '$.documentId') = t.deviceId
+
+WHERE JSON_VALUE(d.data, '$.isDeleted') = 'false'
+${searchFilter}
+${orgFilter}
+
+ORDER BY createdOn DESC
+LIMIT @limit
+OFFSET @offset
+`;
 
   /* ================= COUNT QUERY ================= */
 
@@ -174,7 +190,9 @@ export class DeviceService {
       status: row.isValid === "true" ? "Active" : "Inactive",
       warrantyEnd,
       amcStatus,
-      createdOn: row.createdOn || null
+      createdOn: row.createdOn || null,
+      totalTests: Number(row.totalTests) || 0
+
     };
   });
 

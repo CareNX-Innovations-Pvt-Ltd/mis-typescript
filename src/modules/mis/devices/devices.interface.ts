@@ -12,4 +12,6 @@ export interface IDeviceMis {
   amcStatus: "Active" | "Inactive";
 
   createdOn: Date | null;
+  totalTests: number;
+
 }
