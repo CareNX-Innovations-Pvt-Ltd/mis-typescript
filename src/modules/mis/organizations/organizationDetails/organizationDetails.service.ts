@@ -626,7 +626,7 @@ const DEVICES_TABLE = table("devices_raw_latest");
 export class OrganizationDetailsService {
 
   /* =====================================================
-     🔐 ACCESS VALIDATION
+     ACCESS VALIDATION
   ===================================================== */
 
   private static validateAccess(orgId: string, user: any) {
@@ -658,7 +658,7 @@ export class OrganizationDetailsService {
   }
 
   /* =====================================================
-     1️⃣ ORGANIZATION HEADER
+     1️ORGANIZATION HEADER
   ===================================================== */
 
   static async getOrganizationDetails(orgId: string, user: any) {
@@ -1088,84 +1088,118 @@ testStats AS (
   });
 }
 
-  static async getMothers(orgId: string, user: any) {
-    this.validateAccess(orgId, user);
-const sql = `
+  static async getMothers(
+  orgId: string,
+  user: any,
+  page: number = 1,
+  limit: number = 25
+) {
+  this.validateAccess(orgId, user);
+
+  const offset = (page - 1) * limit;
+
+  const sql = `
   /* ================= MOTHER BASE ================= */
 
-WITH mothers AS (
+  WITH mothers AS (
+    SELECT
+      JSON_VALUE(data, '$.documentId') AS motherId,
+      JSON_VALUE(data, '$.name') AS name,
+
+      SAFE_CAST(JSON_VALUE(data, '$.age') AS INT64) AS age,
+      SAFE_CAST(JSON_VALUE(data, '$.noOfTests') AS INT64) AS noOfTests,
+
+      TIMESTAMP_SECONDS(
+        SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
+      ) AS registrationDate,
+
+      TIMESTAMP_SECONDS(
+        SAFE_CAST(JSON_VALUE(data, '$.edd._seconds') AS INT64)
+      ) AS edd
+
+    FROM ${MOTHERS_TABLE}
+    WHERE JSON_VALUE(data, '$.organizationId') = @orgId
+  )
+
   SELECT
-    JSON_VALUE(data, '$.documentId') AS motherId,
-    JSON_VALUE(data, '$.name') AS name,
-    SAFE_CAST(JSON_VALUE(data, '$.age') AS INT64) AS age,
+    motherId,
+    name,
+    age,
+    registrationDate,
+    edd,
+    IFNULL(noOfTests,0) AS totalTests
 
-    SAFE_CAST(JSON_VALUE(data, '$.noOfTests') AS INT64) AS noOfTests,
+  FROM mothers
+  ORDER BY registrationDate DESC
+  LIMIT @limit
+  OFFSET @offset
+  `;
 
-    TIMESTAMP_SECONDS(
-      SAFE_CAST(JSON_VALUE(data, '$.createdOn._seconds') AS INT64)
-    ) AS registrationDate,
-
-    TIMESTAMP_SECONDS(
-      SAFE_CAST(JSON_VALUE(data, '$.edd._seconds') AS INT64)
-    ) AS edd
-
+  const countSql = `
+  SELECT COUNT(*) AS total
   FROM ${MOTHERS_TABLE}
-  WHERE JSON_VALUE(data, '$.organizationId') = @orgId
-)
-
-  /* ================= FINAL ================= */
-
-SELECT
-  motherId,
-  name,
-  age,
-  registrationDate,
-  edd,
-  IFNULL(noOfTests, 0) AS totalTests
-FROM mothers
-ORDER BY registrationDate DESC
+  WHERE JSON_VALUE(data,'$.organizationId') = @orgId
   `;
 
   const [rows] = await bigquery.query({
     query: sql,
     location: LOCATION,
+    params: { orgId, limit, offset }
+  });
+
+  const [countRows] = await bigquery.query({
+    query: countSql,
+    location: LOCATION,
     params: { orgId }
   });
 
-  return rows.map((row: any) => {
+  const total = Number(countRows[0]?.total || 0);
 
-   const formatDate = (date: any) => {
-  if (!date) return null;
+  const formatDate = (date: any) => {
+    if (!date) return null;
 
-  const raw = date.value || date; // handle BigQuery wrapper
+    const raw = date.value || date;
+    const parsed = new Date(raw);
 
-  const parsed = new Date(raw);
+    if (isNaN(parsed.getTime())) return null;
 
-  if (isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleDateString("en-US", {
+      month: "short",
+      day: "2-digit",
+      year: "numeric"
+    });
+  };
 
-  return parsed.toLocaleDateString("en-US", {
-    month: "short",
-    day: "2-digit",
-    year: "numeric"
-  });
-};
+  const data = rows.map((row: any) => ({
+    motherId: row.motherId,
+    name: row.name,
+    age: row.age,
+    doctor: row.doctorName || null,
+    registrationDate: formatDate(row.registrationDate),
+    expectedDelivery: formatDate(row.edd),
+    totalTests: Number(row.totalTests) || 0
+  }));
 
-    return {
-  motherId: row.motherId,
-  name: row.name,
-  age: row.age,
-  doctor: row.doctorName || null, // remove if not needed
-  registrationDate: formatDate(row.registrationDate),
-  expectedDelivery: formatDate(row.edd),
-  totalTests: Number(row.totalTests) || 0
-};
-  });
-}  
+  return {
+    data,
+    total,
+    page,
+    limit
+  };
+}
 
-  static async getTests(orgId: string, user: any) {
-    this.validateAccess(orgId, user);
-    const sql = `
-    SELECT
+ static async getTests(
+  orgId: string,
+  user: any,
+  page: number = 1,
+  limit: number = 25
+) {
+  this.validateAccess(orgId, user);
+
+  const offset = (page - 1) * limit;
+
+  const sql = `
+  SELECT
     JSON_VALUE(data, '$.id') AS testId,
     JSON_VALUE(data, '$.deviceName') AS deviceName,
     JSON_VALUE(data, '$.motherName') AS motherName,
@@ -1180,24 +1214,42 @@ ORDER BY registrationDate DESC
   FROM ${TESTS_TABLE}
   WHERE JSON_VALUE(data, '$.organizationId') = @orgId
   ORDER BY createdOn DESC
-  LIMIT 100
+  LIMIT @limit
+  OFFSET @offset
+  `;
+
+  const countSql = `
+  SELECT COUNT(*) AS total
+  FROM ${TESTS_TABLE}
+  WHERE JSON_VALUE(data,'$.organizationId') = @orgId
   `;
 
   const [rows] = await bigquery.query({
     query: sql,
     location: LOCATION,
+    params: { orgId, limit, offset }
+  });
+
+  const [countRows] = await bigquery.query({
+    query: countSql,
+    location: LOCATION,
     params: { orgId }
   });
 
-  return rows.map((row: any) => {
+  const total = Number(countRows[0]?.total || 0);
+
+  const data = rows.map((row: any) => {
 
     const formattedDate = row.createdOn
-  ? new Date(row.createdOn.value || row.createdOn).toLocaleDateString("en-US", {
-      month: "short",
-      day: "2-digit",
-      year: "numeric"
-    })
-  : null;
+      ? new Date(row.createdOn.value || row.createdOn).toLocaleDateString(
+          "en-US",
+          {
+            month: "short",
+            day: "2-digit",
+            year: "numeric"
+          }
+        )
+      : null;
 
     return {
       testId: row.testId,
@@ -1210,5 +1262,12 @@ ORDER BY registrationDate DESC
       type: row.testType || "NST"
     };
   });
+
+  return {
+    data,
+    total,
+    page,
+    limit
+  };
 }
 }
