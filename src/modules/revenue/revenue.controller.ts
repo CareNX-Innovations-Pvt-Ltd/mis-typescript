@@ -1,10 +1,7 @@
 import type { Request, Response } from "express";
 import { getRevenueService } from "./revenue.service.js";
 
-export const getRevenueController = async (
-  req: Request,
-  res: Response
-) => {
+export const getRevenueController = async (req: Request, res: Response) => {
   try {
 
     const data = await getRevenueService();
@@ -16,11 +13,11 @@ export const getRevenueController = async (
 
   } catch (error: any) {
 
-    console.error("Revenue API Error:", error);
-
+    console.error("Revenue API Error:", error);   
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch revenue data"
+      message: "Failed to fetch revenue data",
+      error: error.message     
     });
   }
 };
