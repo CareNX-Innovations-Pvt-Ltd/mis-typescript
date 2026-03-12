@@ -10,62 +10,34 @@ const table = (name: string) => `\`${PROJECT}.${DATASET}.${name}\``;
 export const getRevenueService = async (): Promise<RevenueResponse> => {
 
   const query = `
-  WITH
+WITH
 
-  /* ---------------- DEVICE SALES ---------------- */
-
-  device_sales AS (
-    SELECT
-      SUM(invoiceValue) AS deviceSales
-    FROM ${table("devices_raw_latest")}
-    WHERE invoiceValue IS NOT NULL
-  ),
-
-  /* ---------------- SERVICE REVENUE ---------------- */
-
-  service_revenue AS (
-    SELECT
-      SUM(invoiceAmount) AS serviceRevenue
-    FROM ${table("tickets_raw_latest")}
-    WHERE invoiceAmount IS NOT NULL
-  ),
-
-  /* ---------------- AMC REVENUE ---------------- */
-
-  amc_revenue AS (
-    SELECT
-      SUM(invoiceAmount) AS amcRevenue
-    FROM ${table("tickets_raw_latest")}
-    WHERE underAmc = TRUE
-      AND invoiceAmount IS NOT NULL
-  ),
-
-  /* ---------------- SALES CHANNEL ---------------- */
-
-  sales_channel AS (
-    SELECT
-      CASE
-        WHEN LOWER(organizationName) LIKE '%government%' THEN 'Government'
-        WHEN LOWER(organizationName) LIKE '%distributor%' THEN 'Distributor'
-        ELSE 'Direct'
-      END AS channel,
-      SUM(invoiceValue) AS amount
-    FROM ${table("devices_raw_latest")}
-    GROUP BY channel
-  )
-
+device_sales AS (
   SELECT
-    deviceSales,
-    serviceRevenue,
-    amcRevenue,
-    deviceSales + serviceRevenue + amcRevenue AS totalRevenue,
-    (
-      SELECT ARRAY_AGG(STRUCT(channel AS name, amount))
-      FROM sales_channel
-    ) AS byChannel
+    SUM(IFNULL(SAFE_CAST(invoiceValue AS FLOAT64),0)) AS deviceSales
+  FROM ${table("devices_raw_latest")}
+),
 
-  FROM device_sales, service_revenue, amc_revenue
-  `;
+service_revenue AS (
+  SELECT
+    SUM(IFNULL(SAFE_CAST(invoiceAmount AS FLOAT64),0)) AS serviceRevenue
+  FROM ${table("tickets_raw_latest")}
+),
+
+amc_revenue AS (
+  SELECT
+    SUM(IFNULL(SAFE_CAST(invoiceAmount AS FLOAT64),0)) AS amcRevenue
+  FROM ${table("tickets_raw_latest")}
+  WHERE underAmc = TRUE
+)
+
+SELECT
+  deviceSales,
+  serviceRevenue,
+  amcRevenue,
+  deviceSales + serviceRevenue + amcRevenue AS totalRevenue
+FROM device_sales, service_revenue, amc_revenue
+`;
 
   const [rows] = await bigquery.query({
     query,
