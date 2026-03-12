@@ -16,13 +16,13 @@ import OrganizationDetailsRoutes from "./modules/mis/organizations/organizationD
 import { authenticate } from "./middleware/auth.middleware.js";
 import loginRoutes from "./modules/login/login.routes.js";
 import { authorizeRoles } from "./middleware/role.middleware.js";
-import  deregister  from "./modules/deregister/deregister/deregister.routes.js";
+import  deregisterRoutes  from "./modules/deregister/deregister/deregister.routes.js";
+import  revenueRoutes  from "./modules/revenue/revenue.routes.js";
 const router = Router();
 
 router.use("/auth", loginRoutes);
 router.use(authenticate);
-router.use("/deregister", authenticate,
-  authorizeRoles("admin"),deregister);
+router.use("/deregister", authenticate, authorizeRoles("admin"),deregisterRoutes);
 router.use("/mis/organizations", authorizeRoles("admin", "groupUser"), organizationMisRoutes);
 router.use("/mis/devices", authorizeRoles("admin", "groupUser"), deviceMisRoutes);
 router.use("/registration/organizations", authorizeRoles("admin"), organizationRegistrationRoutes);
@@ -35,6 +35,7 @@ router.use("/support", authorizeRoles("admin"), serviceDashboardRoutes);
 router.use("/feedback", authorizeRoles("admin"), newFeedbackRoutes);
 router.use("/feedback", authorizeRoles("admin"), updateFeedbackRoutes);
 router.use("/feedback", authorizeRoles("admin"), feedbackDashboardRoutes);
+router.use("/revenue", authorizeRoles("admin"), revenueRoutes);
 router.use("/analytics", authorizeRoles("admin", "groupUser"), analyticsDashboardRoutes);
 router.use("/organizationDetails", authorizeRoles("admin", "groupUser"), OrganizationDetailsRoutes);
 
