@@ -3,6 +3,6 @@ import { getRevenueController } from "./revenue.controller.js";
 
 const router = Router();
 
-router.get("/revenue", getRevenueController);
+router.get("/", getRevenueController);
 
 export default router;
