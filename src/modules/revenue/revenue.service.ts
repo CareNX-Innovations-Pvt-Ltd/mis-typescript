@@ -25,15 +25,25 @@ device_sales AS (
 
 service_revenue AS (
   SELECT
-    SUM(IFNULL(SAFE_CAST(invoiceAmount AS FLOAT64),0)) AS serviceRevenue
-  FROM ${table("tickets_raw_latest")}
+    SUM(
+      IFNULL(
+        SAFE_CAST(JSON_VALUE(TO_JSON_STRING(t), '$.invoiceAmount') AS FLOAT64),
+        0
+      )
+    ) AS serviceRevenue
+  FROM ${table("tickets_raw_latest")} t
 ),
 
 amc_revenue AS (
   SELECT
-    SUM(IFNULL(SAFE_CAST(invoiceAmount AS FLOAT64),0)) AS amcRevenue
-  FROM ${table("tickets_raw_latest")}
-  WHERE underAmc = TRUE
+    SUM(
+      IFNULL(
+        SAFE_CAST(JSON_VALUE(TO_JSON_STRING(t), '$.invoiceAmount') AS FLOAT64),
+        0
+      )
+    ) AS amcRevenue
+  FROM ${table("tickets_raw_latest")} t
+  WHERE JSON_VALUE(TO_JSON_STRING(t), '$.underAmc') = 'true'
 )
 
 SELECT
