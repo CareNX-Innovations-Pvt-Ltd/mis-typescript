@@ -678,7 +678,7 @@ export class DashboardService {
       SELECT ARRAY_AGG(STRUCT(productType, count))
       FROM (
         SELECT 
-          COALESCE(productType, 'basic') AS productType,
+          COALESCE(productType, 'main') AS productType,
           COUNT(*) AS count
         FROM device_base
         GROUP BY productType
