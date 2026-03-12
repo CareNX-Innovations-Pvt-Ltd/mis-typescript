@@ -14,8 +14,13 @@ WITH
 
 device_sales AS (
   SELECT
-    SUM(IFNULL(SAFE_CAST(invoiceValue AS FLOAT64),0)) AS deviceSales
-  FROM ${table("devices_raw_latest")}
+    SUM(
+      IFNULL(
+        SAFE_CAST(JSON_VALUE(TO_JSON_STRING(t), '$.invoiceValue') AS FLOAT64),
+        0
+      )
+    ) AS deviceSales
+  FROM ${table("devices_raw_latest")} t
 ),
 
 service_revenue AS (
@@ -44,7 +49,7 @@ FROM device_sales, service_revenue, amc_revenue
     location: LOCATION
   });
 
-  const row = rows[0];
+  const row = rows?.[0] || {};
 
   const breakdown = [
     { name: "Services", amount: row.serviceRevenue || 0 },
@@ -60,6 +65,6 @@ FROM device_sales, service_revenue, amc_revenue
       serviceRevenue: row.serviceRevenue || 0
     },
     breakdown,
-    byChannel: row.byChannel || []
+    byChannel: []
   };
 };
