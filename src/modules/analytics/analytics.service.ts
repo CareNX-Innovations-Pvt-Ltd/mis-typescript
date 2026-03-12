@@ -378,8 +378,6 @@ export class AnalyticsService {
         ? `AND JSON_VALUE(d.data, '$.product') = '${product}'`
         : '';
 
-    /* ================= ORG AUTH FILTER ================= */
-
     const orgFilter = isGroupUser
       ? `AND JSON_VALUE(t.data, '$.organizationId') IN UNNEST(@orgIds)`
       : '';
@@ -396,6 +394,7 @@ WITH baseTests AS (
     JSON_VALUE(t.data, '$.organizationName') AS organizationName,
     JSON_VALUE(t.data, '$.organizationId') AS organizationId,
     JSON_VALUE(t.data, '$.motherId') AS motherId,
+    JSON_VALUE(t.data, '$.testType') AS testType,
     CAST(JSON_VALUE(t.data, '$.lengthOfTest') AS FLOAT64) / 60 AS lengthOfTest,
     TIMESTAMP_SECONDS(
       SAFE_CAST(JSON_VALUE(t.data, '$.createdOn._seconds') AS INT64)
@@ -462,7 +461,6 @@ modeTestDuration AS (
   ORDER BY COUNT(*) DESC
   LIMIT 1
 ),
-
 
 avgDailyTests AS (
   SELECT ROUND(AVG(cnt),2) AS value
@@ -536,13 +534,24 @@ durationDist AS (
   FROM baseTests
   WHERE lengthOfTest IS NOT NULL
   GROUP BY label
+),
+
+/* ================= TEST TYPE DISTRIBUTION ================= */
+
+testTypeDistribution AS (
+  SELECT
+    LOWER(testType) AS testType,
+    COUNT(*) AS count
+  FROM baseTests
+  WHERE LOWER(testType) IN ('nst','ctg')
+  GROUP BY testType
 )
 
 SELECT
 
 STRUCT(
   (SELECT value FROM avgTestsPerDevice) AS avgTestsPerDevice,
-(SELECT value FROM modeTestDuration) AS modeTestDuration,
+  (SELECT value FROM modeTestDuration) AS modeTestDuration,
   (SELECT value FROM avgDailyTests) AS avgDailyTests,
   (SELECT value FROM needAttention) AS needAttention
 ) AS summary,
@@ -561,7 +570,9 @@ STRUCT(
 
 (SELECT AS STRUCT * FROM motherAnalysis) AS motherAnalysis,
 
-(SELECT ARRAY_AGG(d) FROM durationDist d) AS testDurationDistribution
+(SELECT ARRAY_AGG(d) FROM durationDist d) AS testDurationDistribution,
+
+(SELECT ARRAY_AGG(t) FROM testTypeDistribution t) AS testTypeDistribution
 `;
 
     const queryOptions: any = {
