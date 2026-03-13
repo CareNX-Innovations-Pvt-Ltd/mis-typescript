@@ -39,24 +39,30 @@ export class ClinicalService {
         JSON_VALUE(t.data,'$.motherId') AS motherId,
 
         CASE
+
+          /* FisherScoreArray missing */
           WHEN JSON_QUERY(t.data,'$.FisherScoreArray') IS NULL
+            OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
             THEN 'Inconclusive'
 
+          /* Normal */
           WHEN (
             SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Acceleration') AS INT64) >= 2
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Bandwidth') AS INT64) >= 20
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Deceleration') AS INT64) = 0
-            AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.BaseLine Frequency') AS INT64)
+            AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray."BaseLine Frequency"') AS INT64)
               BETWEEN 110 AND 160
           )
           THEN 'Normal'
 
+          /* Critical */
           WHEN (
             SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Acceleration') AS INT64) < 2
             OR SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Deceleration') AS INT64) > 0
           )
           THEN 'Critical'
 
+          /* Default */
           ELSE 'Abnormal'
 
         END AS result
@@ -132,7 +138,9 @@ export class ClinicalService {
         ) AS testDate,
 
         CASE
+
           WHEN JSON_QUERY(t.data,'$.FisherScoreArray') IS NULL
+            OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
             THEN 'Inconclusive'
 
           WHEN (
@@ -155,8 +163,7 @@ export class ClinicalService {
       FROM ${testsTable()} t
 
       LEFT JOIN ${mothersTable()} m
-        ON JSON_VALUE(t.data,'$.motherId')
-           = JSON_VALUE(m.data,'$.id')
+        ON JSON_VALUE(t.data,'$.motherId') = m.documentId
     ),
 
     ordered AS (
@@ -180,6 +187,8 @@ export class ClinicalService {
 
     FROM ordered
     WHERE prevResult IS NOT NULL
+    AND prevResult != result
+
     `;
 
     const [rows] = await bigquery.query({
