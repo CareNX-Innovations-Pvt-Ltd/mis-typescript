@@ -3,6 +3,6 @@ import { ClinicalController } from "./clinicalAnalysis.controller.js";
 
 const router = Router();
 
-router.get("/analytics/clinical", ClinicalController.getDashboard);
+router.get("/clinicalAnalysis", ClinicalController.getDashboard);
 
 export default router;

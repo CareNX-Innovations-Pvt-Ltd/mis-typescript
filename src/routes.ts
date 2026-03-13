@@ -39,6 +39,6 @@ router.use("/feedback", authorizeRoles("admin"), feedbackDashboardRoutes);
 router.use("/revenue", authorizeRoles("admin"), revenueRoutes);
 router.use("/analytics", authorizeRoles("admin", "groupUser"), analyticsDashboardRoutes);
 router.use("/organizationDetails", authorizeRoles("admin", "groupUser"), OrganizationDetailsRoutes);
-router.use("/clinical", authorizeRoles("admin", "groupUser"), clinicalAnalysisRoutes);
+router.use("/", authorizeRoles("admin", "groupUser"), clinicalAnalysisRoutes);
 
 export default router;
