@@ -1,4 +1,6 @@
 import { bigquery } from "../../config/bigQuery.js";
+import { cache } from "../../config/cache.js";
+
 import type {
   ClinicalSummary,
   AgeDistribution,
@@ -30,6 +32,10 @@ export class ClinicalService {
 
   static async getSummary(): Promise<ClinicalSummary> {
 
+    const cacheKey = "clinical:summary";
+    const cached = cache.get(cacheKey) as ClinicalSummary | undefined;
+if (cached) return cached;
+
     const query = `
 
     WITH classified AS (
@@ -39,30 +45,25 @@ export class ClinicalService {
         JSON_VALUE(t.data,'$.motherId') AS motherId,
 
         CASE
-
-          /* FisherScoreArray missing */
           WHEN JSON_QUERY(t.data,'$.FisherScoreArray') IS NULL
-            OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
+               OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
             THEN 'Inconclusive'
 
-          /* Normal */
           WHEN (
             SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Acceleration') AS INT64) >= 2
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Bandwidth') AS INT64) >= 20
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Deceleration') AS INT64) = 0
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray."BaseLine Frequency"') AS INT64)
-              BETWEEN 110 AND 160
+                BETWEEN 110 AND 160
           )
           THEN 'Normal'
 
-          /* Critical */
           WHEN (
             SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Acceleration') AS INT64) < 2
             OR SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Deceleration') AS INT64) > 0
           )
           THEN 'Critical'
 
-          /* Default */
           ELSE 'Abnormal'
 
         END AS result
@@ -85,12 +86,20 @@ export class ClinicalService {
       location: LOCATION
     });
 
-    return rows[0];
+    const result = rows[0];
+
+    cache.set(cacheKey, result, 3600);
+
+    return result;
   }
 
   /* ================= AGE DISTRIBUTION ================= */
 
   static async getAgeDistribution(): Promise<AgeDistribution[]> {
+
+    const cacheKey = "clinical:ageDistribution";
+    const cached = cache.get(cacheKey) as AgeDistribution[] | undefined;
+if (cached) return cached;
 
     const query = `
 
@@ -116,12 +125,18 @@ export class ClinicalService {
       location: LOCATION
     });
 
+    cache.set(cacheKey, rows, 3600);
+
     return rows;
   }
 
   /* ================= TRANSITIONS ================= */
 
   static async getTransitions(): Promise<TransitionRecord[]> {
+
+    const cacheKey = "clinical:transitions";
+    const cached = cache.get(cacheKey) as TransitionRecord[] | undefined;
+if (cached) return cached;
 
     const query = `
 
@@ -138,15 +153,16 @@ export class ClinicalService {
         ) AS testDate,
 
         CASE
-
           WHEN JSON_QUERY(t.data,'$.FisherScoreArray') IS NULL
-            OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
+               OR JSON_QUERY(t.data,'$.FisherScoreArray') = 'null'
             THEN 'Inconclusive'
 
           WHEN (
             SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Acceleration') AS INT64) >= 2
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Bandwidth') AS INT64) >= 20
             AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray.Deceleration') AS INT64) = 0
+            AND SAFE_CAST(JSON_VALUE(t.data,'$.FisherScoreArray."BaseLine Frequency"') AS INT64)
+                BETWEEN 110 AND 160
           )
           THEN 'Normal'
 
@@ -188,13 +204,14 @@ export class ClinicalService {
     FROM ordered
     WHERE prevResult IS NOT NULL
     AND prevResult != result
-
     `;
 
     const [rows] = await bigquery.query({
       query,
       location: LOCATION
     });
+
+    cache.set(cacheKey, rows, 3600);
 
     return rows;
   }
