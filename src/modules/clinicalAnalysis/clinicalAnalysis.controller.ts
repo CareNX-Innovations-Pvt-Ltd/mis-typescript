@@ -20,16 +20,14 @@ export class ClinicalController {
         }
       });
 
-    } catch (error) {
+    } catch (error: any) {
+  console.error("Clinical Analytics Error:", error);
 
-      console.error(error);
-
-      res.status(500).json({
-        success: false,
-        message: "Failed to fetch clinical analytics"
-      });
-
-    }
+  res.status(500).json({
+    success: false,
+    message: error.message,
+  });
+}
 
   }
 
