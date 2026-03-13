@@ -32,6 +32,7 @@ service_revenue AS (
       )
     ) AS serviceRevenue
   FROM ${table("tickets_raw_latest")} t
+  WHERE JSON_VALUE(TO_JSON_STRING(t), '$.underAmc') = 'false'
 ),
 
 amc_revenue AS (
